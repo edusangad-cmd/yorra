@@ -1,0 +1,17 @@
+{
+  "$comment": "Event-driven automation. Schema is version-dependent — see .agents/README.md and confirm against your installed Antigravity build before relying on it.",
+  "hooks": [
+    {
+      "event": "on_file_save",
+      "filter": "backend/**/*.py",
+      "action": "run_command",
+      "command": "docker compose exec -T backend uv run ruff check --fix ${file}"
+    },
+    {
+      "event": "on_file_save",
+      "filter": "frontend/**/*.{ts,tsx}",
+      "action": "run_command",
+      "command": "docker compose exec -T frontend npx eslint --fix ${file}"
+    }
+  ]
+}

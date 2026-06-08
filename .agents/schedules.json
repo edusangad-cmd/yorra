@@ -1,0 +1,11 @@
+{
+  "$comment": "Scheduled agent tasks (cron + natural-language prompt). Schema is version-dependent — confirm against your installed Antigravity build. Disabled by default.",
+  "schedules": [
+    {
+      "name": "weekly-verify-audit",
+      "cron": "0 9 * * 1",
+      "enabled": false,
+      "prompt": "Check out the integration branch and run `./scripts/verify.sh` (full). Summarize any failures and open an issue if something broke."
+    }
+  ]
+}
