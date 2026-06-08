@@ -2,6 +2,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import endpoints, telegram
 from app.core.config import settings
@@ -17,9 +18,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
+# Add CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Include API Routers
 app.include_router(telegram.router)
 app.include_router(endpoints.router)
+
 
 
 @app.get("/")
