@@ -27,6 +27,7 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
 
 # FastAPI's dependency-injection idiom calls Depends()/Query()/… in argument
 # defaults on purpose; exempt them from flake8-bugbear's B008.
@@ -43,6 +44,7 @@ extend-immutable-calls = [
 [tool.mypy]
 python_version = "3.12"
 strict = true
+plugins = ["pydantic.mypy"]
 
 # SQLModel's table classes confuse mypy's strict plugin-less checks; scope the noise.
 [[tool.mypy.overrides]]
