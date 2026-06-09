@@ -76,6 +76,22 @@ export const api = {
     return user;
   },
 
+  async register(username: string, fullName: string): Promise<User> {
+    const res = await fetch(`${API_URL}/api/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, full_name: fullName }),
+    });
+    if (!res.ok) {
+      const errorData = (await res.json().catch(() => ({}))) as { detail?: string };
+      throw new Error(errorData.detail || "Error al registrar usuario");
+    }
+    const user = (await res.json()) as User;
+    localStorage.setItem("telegram_id", user.telegram_id);
+    localStorage.setItem("user_name", user.full_name);
+    return user;
+  },
+
   logout(): void {
     localStorage.removeItem("telegram_id");
     localStorage.removeItem("user_name");

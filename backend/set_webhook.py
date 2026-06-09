@@ -1,6 +1,9 @@
 import sys
+
 import httpx
+
 from app.core.config import settings
+
 
 def main() -> None:
     if len(sys.argv) < 2:
@@ -14,7 +17,7 @@ def main() -> None:
     token = settings.TELEGRAM_BOT_TOKEN
     telegram_api_url = f"https://api.telegram.org/bot{token}/setWebhook"
     
-    print(f"Configurando Webhook de Telegram...")
+    print("Configurando Webhook de Telegram...")
     print(f"  - Token del Bot: {token[:10]}... (ocultado por seguridad)")
     print(f"  - URL del Webhook: {webhook_url}")
     
