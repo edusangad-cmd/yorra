@@ -48,6 +48,12 @@ async def do_db_cleanup() -> None:
         for u in user_res.scalars().all():
             await session.delete(u)
 
+        user_res2 = await session.execute(
+            select(User).where(User.telegram_id == "pedro_perez")  # type: ignore[arg-type]
+        )
+        for u in user_res2.scalars().all():
+            await session.delete(u)
+
         await session.commit()
 
 
@@ -250,4 +256,42 @@ async def test_debug_simulate_real_scores() -> None:
             assert db_match.home_score is not None
             assert db_match.away_score is not None
             assert db_match.status == "FT"
+
+
+@pytest.mark.asyncio
+async def test_user_registration_and_case_insensitive_auth() -> None:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        # 1. Register new user
+        res_reg = await ac.post(
+            "/api/register",
+            json={"username": "Pedro_Perez", "full_name": "Pedro Pérez"}
+        )
+        assert res_reg.status_code == 200
+        data = res_reg.json()
+        assert data["username"] == "pedro_perez"
+        assert data["full_name"] == "Pedro Pérez"
+        assert data["telegram_id"] == "pedro_perez"
+
+        # 2. Try registering duplicate username
+        res_reg_dup = await ac.post(
+            "/api/register",
+            json={"username": "@Pedro_Perez", "full_name": "Otro Pedro"}
+        )
+        assert res_reg_dup.status_code == 400
+
+        # 3. Authenticate with original casing
+        res_auth_orig = await ac.post(
+            "/api/auth",
+            json={"username_or_id": "Pedro_Perez"}
+        )
+        assert res_auth_orig.status_code == 200
+        assert res_auth_orig.json()["username"] == "pedro_perez"
+
+        # 4. Authenticate with lowercase and @
+        res_auth_at = await ac.post(
+            "/api/auth",
+            json={"username_or_id": "@pedro_perez"}
+        )
+        assert res_auth_at.status_code == 200
+        assert res_auth_at.json()["username"] == "pedro_perez"
 

@@ -99,6 +99,8 @@ function App() {
   // UI States
   const [loginInput, setLoginInput] = useState<string>("");
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [isRegistering, setIsRegistering] = useState<boolean>(false);
+  const [registerFullName, setRegisterFullName] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"matches" | "bracket" | "standings" | "sidebets" | "leaderboard">("matches");
   const [matchSubTab, setMatchSubTab] = useState<"groups" | "knockouts">("groups");
   
@@ -204,6 +206,23 @@ function App() {
     } catch (err: unknown) {
       const error = err as Error;
       setLoginError(error.message || "Error al iniciar sesión");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginInput.trim() || !registerFullName.trim()) return;
+    setLoading(true);
+    setLoginError(null);
+    try {
+      const userData = await api.register(loginInput, registerFullName);
+      setUser(userData);
+      setActiveTab("matches");
+    } catch (err: unknown) {
+      const error = err as Error;
+      setLoginError(error.message || "Error al registrar usuario");
     } finally {
       setLoading(false);
     }
@@ -730,37 +749,113 @@ function App() {
     );
   }
 
-  // --- LOGIN VIEW ---
+  // --- LOGIN/REGISTER VIEW ---
   if (!user) {
     return (
       <div className="auth-wrapper">
         <div className="glass-panel auth-card">
           <span className="auth-logo">🏆</span>
           <h1>Porra Mundial 2026</h1>
-          <p>Introduce tu usuario o ID de Telegram para acceder</p>
+          
+          {isRegistering ? (
+            <>
+              <p>Elige tu nombre de usuario y nombre completo para registrarte</p>
+              <form onSubmit={handleRegister}>
+                {loginError && <div className="error-message">{loginError}</div>}
+                
+                <div className="input-group">
+                  <label className="input-label" htmlFor="registerUsername">
+                    Nombre de usuario (ej: edu_sanchez)
+                  </label>
+                  <input
+                    id="registerUsername"
+                    type="text"
+                    className="premium-input"
+                    placeholder="Sin espacios ni caracteres especiales"
+                    value={loginInput}
+                    onChange={(e) => setLoginInput(e.target.value)}
+                    required
+                  />
+                </div>
 
-          <form onSubmit={handleLogin}>
-            {loginError && <div className="error-message">{loginError}</div>}
-            
-            <div className="input-group">
-              <label className="input-label" htmlFor="usernameInput">
-                Usuario o ID de Telegram
-              </label>
-              <input
-                id="usernameInput"
-                type="text"
-                className="premium-input"
-                placeholder="ej: @nombreusuario o 12345678"
-                value={loginInput}
-                onChange={(e) => setLoginInput(e.target.value)}
-                required
-              />
-            </div>
+                <div className="input-group">
+                  <label className="input-label" htmlFor="registerFullName">
+                    Nombre Completo (ej: Edu Sánchez)
+                  </label>
+                  <input
+                    id="registerFullName"
+                    type="text"
+                    className="premium-input"
+                    placeholder="El nombre que se verá en la porra"
+                    value={registerFullName}
+                    onChange={(e) => setRegisterFullName(e.target.value)}
+                    required
+                  />
+                </div>
 
-            <button type="submit" className="premium-button">
-              Ingresar a la Porra
-            </button>
-          </form>
+                <button type="submit" className="premium-button">
+                  Registrarse y Entrar
+                </button>
+
+                <p className="auth-toggle-text" style={{ marginTop: "1rem", fontSize: "0.9rem", opacity: 0.8 }}>
+                  ¿Ya tienes cuenta?{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRegistering(false);
+                      setLoginError(null);
+                      setLoginInput("");
+                    }}
+                    style={{ background: "none", border: "none", color: "#60a5fa", cursor: "pointer", textDecoration: "underline", padding: 0 }}
+                  >
+                    Inicia sesión aquí
+                  </button>
+                </p>
+              </form>
+            </>
+          ) : (
+            <>
+              <p>Introduce tu nombre de usuario para acceder</p>
+              <form onSubmit={handleLogin}>
+                {loginError && <div className="error-message">{loginError}</div>}
+                
+                <div className="input-group">
+                  <label className="input-label" htmlFor="usernameInput">
+                    Nombre de usuario
+                  </label>
+                  <input
+                    id="usernameInput"
+                    type="text"
+                    className="premium-input"
+                    placeholder="ej: edu_sanchez"
+                    value={loginInput}
+                    onChange={(e) => setLoginInput(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <button type="submit" className="premium-button">
+                  Ingresar a la Porra
+                </button>
+
+                <p className="auth-toggle-text" style={{ marginTop: "1rem", fontSize: "0.9rem", opacity: 0.8 }}>
+                  ¿Eres nuevo?{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRegistering(true);
+                      setLoginError(null);
+                      setLoginInput("");
+                      setRegisterFullName("");
+                    }}
+                    style={{ background: "none", border: "none", color: "#60a5fa", cursor: "pointer", textDecoration: "underline", padding: 0 }}
+                  >
+                    Regístrate aquí
+                  </button>
+                </p>
+              </form>
+            </>
+          )}
         </div>
       </div>
     );

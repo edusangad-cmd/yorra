@@ -4,7 +4,7 @@ from typing import Any, cast
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import asc, desc, select
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.telegram import ROAST_TEMPLATES
@@ -34,6 +34,11 @@ class AuthRequest(BaseModel):
     username_or_id: str
 
 
+class RegisterRequest(BaseModel):
+    username: str
+    full_name: str
+
+
 class PredictionRequest(BaseModel):
     match_id: int
     home_score: int
@@ -54,31 +59,66 @@ async def get_current_user(
     return user
 
 
+@router.post("/register")
+async def register(
+    payload: RegisterRequest, db: AsyncSession = Depends(get_session)
+) -> dict[str, Any]:
+    username = payload.username.strip().replace("@", "").lower()
+    full_name = payload.full_name.strip()
+
+    if not username:
+        raise HTTPException(status_code=400, detail="El nombre de usuario es obligatorio.")
+    if not full_name:
+        full_name = username
+
+    # Check if username already exists case-insensitively
+    result = await db.execute(select(User).where(func.lower(User.username) == username))
+    if result.scalars().first():
+        raise HTTPException(status_code=400, detail="El nombre de usuario ya está registrado.")
+
+    # Check if telegram_id already exists case-insensitively
+    result = await db.execute(select(User).where(func.lower(User.telegram_id) == username))
+    if result.scalars().first():
+        raise HTTPException(status_code=400, detail="El identificador ya está registrado.")
+
+    new_user = User(
+        telegram_id=username,
+        username=username,
+        full_name=full_name,
+        points=0
+    )
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+
+    return {
+        "id": new_user.id,
+        "telegram_id": new_user.telegram_id,
+        "username": new_user.username,
+        "full_name": new_user.full_name,
+        "points": new_user.points,
+    }
+
+
 @router.post("/auth")
 async def authenticate(
     payload: AuthRequest, db: AsyncSession = Depends(get_session)
 ) -> dict[str, Any]:
-    search_str = payload.username_or_id.strip()
+    search_str = payload.username_or_id.strip().replace("@", "").lower()
 
-    # Try looking up by telegram_id directly
-    result = await db.execute(select(User).where(User.telegram_id == search_str))  # type: ignore[arg-type]
+    # Try looking up by telegram_id directly (case-insensitive)
+    result = await db.execute(select(User).where(func.lower(User.telegram_id) == search_str))
     user = result.scalars().first()
 
-    # If not found and search_str starts with @, remove it and look up by username
-    if not user and search_str.startswith("@"):
-        username = search_str[1:]
-        result = await db.execute(select(User).where(User.username == username))  # type: ignore[arg-type]
-        user = result.scalars().first()
-
+    # Try looking up by username (case-insensitive)
     if not user:
-        # Also try looking up by username directly without @
-        result = await db.execute(select(User).where(User.username == search_str))  # type: ignore[arg-type]
+        result = await db.execute(select(User).where(func.lower(User.username) == search_str))
         user = result.scalars().first()
 
     if not user:
         raise HTTPException(
             status_code=404,
-            detail="Usuario no encontrado. Asegúrate de registrarte primero en el bot de Telegram usando /start.",
+            detail="Usuario no encontrado. Regístrate en la pantalla de inicio o usa el bot de Telegram.",
         )
 
     return {
