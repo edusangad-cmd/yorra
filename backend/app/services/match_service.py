@@ -76,6 +76,8 @@ class MatchService:
                 db_match.home_score = home_score
                 db_match.away_score = away_score
                 db_match.status = status
+                db_match.group = fixture_data.get("group")
+                db_match.stage = fixture_data.get("stage")
                 db_match.last_updated = now
             else:
                 db_match = Match(
@@ -86,9 +88,12 @@ class MatchService:
                     away_score=away_score,
                     status=status,
                     date=match_date,
+                    group=fixture_data.get("group"),
+                    stage=fixture_data.get("stage"),
                     last_updated=now,
                 )
                 db.add(db_match)
+
 
             if score_changed and home_score is not None and away_score is not None:
                 # Recalculate points for predictions on this match

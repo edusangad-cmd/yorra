@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from app.db.session import async_session_maker
 from app.main import app
-from app.models.models import Match, Prediction, User
+from app.models.models import Match, Prediction, TournamentPrediction, User
 
 TEST_TELEGRAM_ID = "999999999"
 TEST_USERNAME = "test_user_porra"
@@ -29,14 +29,27 @@ async def do_db_cleanup() -> None:
         if match:
             await session.delete(match)
 
+        # Delete tournament predictions
+        user_res = await session.execute(
+            select(User).where(User.telegram_id == TEST_TELEGRAM_ID)  # type: ignore[arg-type]
+        )
+        user = user_res.scalars().first()
+        if user:
+            tp_res = await session.execute(
+                select(TournamentPrediction).where(TournamentPrediction.user_id == user.id)  # type: ignore[arg-type]
+            )
+            for tp in tp_res.scalars().all():
+                await session.delete(tp)
+
         # Delete user
         user_res = await session.execute(
             select(User).where(User.telegram_id == TEST_TELEGRAM_ID)  # type: ignore[arg-type]
         )
-        for user in user_res.scalars().all():
-            await session.delete(user)
+        for u in user_res.scalars().all():
+            await session.delete(u)
 
         await session.commit()
+
 
 
 @pytest.fixture(autouse=True)
@@ -173,3 +186,68 @@ async def test_leaderboard() -> None:
         assert "users" in data
         assert "roast" in data
         assert any(u["username"] == TEST_USERNAME for u in data["users"])
+
+
+@pytest.mark.asyncio
+async def test_tournament_predictions_flow() -> None:
+    # 1. Setup user in DB
+    async with async_session_maker() as session:
+        user = User(telegram_id=TEST_TELEGRAM_ID, username=TEST_USERNAME, full_name=TEST_FULL_NAME)
+        session.add(user)
+        await session.commit()
+
+    headers = {"X-Telegram-Id": TEST_TELEGRAM_ID}
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        # Get predictions (should be empty initially)
+        res_get = await ac.get("/api/tournament-predictions", headers=headers)
+        assert res_get.status_code == 200
+        assert res_get.json()["champion"] is None
+
+        # Save predictions
+        res_post = await ac.post(
+            "/api/tournament-predictions",
+            headers=headers,
+            json={
+                "champion": "Spain",
+                "runner_up": "Brazil",
+                "top_scorer": "Haaland",
+                "surprise_team": "Morocco"
+            }
+        )
+        assert res_post.status_code == 200
+        assert res_post.json()["champion"] == "Spain"
+
+        # Get again and confirm
+        res_get_again = await ac.get("/api/tournament-predictions", headers=headers)
+        assert res_get_again.status_code == 200
+        assert res_get_again.json()["champion"] == "Spain"
+        assert res_get_again.json()["top_scorer"] == "Haaland"
+
+
+@pytest.mark.asyncio
+async def test_debug_simulate_real_scores() -> None:
+    # 1. Setup match in DB
+    async with async_session_maker() as session:
+        match = Match(
+            id=TEST_MATCH_ID,
+            home_team="Spain",
+            away_team="Germany",
+            status="NS",
+            date=datetime.now(UTC).replace(tzinfo=None) + timedelta(days=1),
+        )
+        session.add(match)
+        await session.commit()
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        res = await ac.post("/api/debug/simulate-real-scores")
+        assert res.status_code == 200
+        assert res.json()["success"] is True
+
+        # Check that the match has a score now
+        async with async_session_maker() as session:
+            db_match = await session.get(Match, TEST_MATCH_ID)
+            assert db_match is not None
+            assert db_match.home_score is not None
+            assert db_match.away_score is not None
+            assert db_match.status == "FT"
+

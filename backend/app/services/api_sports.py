@@ -141,9 +141,12 @@ class APISportsClient:
                     "goals": {
                         "home": home_score,
                         "away": away_score
-                    }
+                    },
+                    "group": g.get("group"),
+                    "stage": g.get("type")
                 })
             return mapped_fixtures
+
 
     async def get_fixtures_by_date(self, date_str: str) -> list[dict[str, Any]]:
         """
