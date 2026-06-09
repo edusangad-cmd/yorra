@@ -1,6 +1,7 @@
 import sys
 from collections.abc import AsyncGenerator
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 from sqlmodel import SQLModel
@@ -20,6 +21,10 @@ async def init_db() -> None:
     """Initialize the database and create tables if they do not exist."""
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
+        # Idempotent column additions for existing tables
+        await conn.execute(text('ALTER TABLE match ADD COLUMN IF NOT EXISTS "group" VARCHAR;'))
+        await conn.execute(text('ALTER TABLE match ADD COLUMN IF NOT EXISTS stage VARCHAR;'))
+
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:

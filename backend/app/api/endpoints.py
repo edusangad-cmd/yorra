@@ -9,10 +9,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.telegram import ROAST_TEMPLATES
 from app.db.session import get_session
-from app.models.models import Match, Prediction, User
-from app.services.match_service import MatchService
+from app.models.models import Match, Prediction, TournamentPrediction, User
+from app.services.match_service import MatchService, calculate_points
 
 router = APIRouter(prefix="/api", tags=["api"])
+
+
+class TournamentPredictionResponse(BaseModel):
+    champion: str | None = None
+    runner_up: str | None = None
+    top_scorer: str | None = None
+    surprise_team: str | None = None
+
+
+class TournamentPredictionRequest(BaseModel):
+    champion: str | None = None
+    runner_up: str | None = None
+    top_scorer: str | None = None
+    surprise_team: str | None = None
+
 
 
 class AuthRequest(BaseModel):
@@ -92,9 +107,12 @@ async def get_matches(db: AsyncSession = Depends(get_session)) -> list[dict[str,
             "away_score": m.away_score,
             "status": m.status,
             "date": m.date.isoformat(),
+            "group": m.group,
+            "stage": m.stage,
         }
         for m in matches
     ]
+
 
 
 @router.get("/predictions")
@@ -203,3 +221,104 @@ async def get_leaderboard(db: AsyncSession = Depends(get_session)) -> dict[str, 
         "users": leaderboard_list,
         "roast": roast,
     }
+
+
+@router.get("/tournament-predictions", response_model=TournamentPredictionResponse)
+async def get_tournament_predictions(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_session),
+) -> TournamentPredictionResponse:
+    result = await db.execute(
+        select(TournamentPrediction).where(TournamentPrediction.user_id == current_user.id)  # type: ignore[arg-type]
+    )
+    pred = result.scalars().first()
+    if not pred:
+        return TournamentPredictionResponse()
+    return TournamentPredictionResponse(
+        champion=pred.champion,
+        runner_up=pred.runner_up,
+        top_scorer=pred.top_scorer,
+        surprise_team=pred.surprise_team,
+    )
+
+
+@router.post("/tournament-predictions", response_model=TournamentPredictionResponse)
+async def save_tournament_predictions(
+    payload: TournamentPredictionRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_session),
+) -> TournamentPredictionResponse:
+    result = await db.execute(
+        select(TournamentPrediction).where(TournamentPrediction.user_id == current_user.id)  # type: ignore[arg-type]
+    )
+    pred = result.scalars().first()
+
+    now = datetime.utcnow()
+    if pred:
+        pred.champion = payload.champion
+        pred.runner_up = payload.runner_up
+        pred.top_scorer = payload.top_scorer
+        pred.surprise_team = payload.surprise_team
+        pred.last_updated = now
+    else:
+        pred = TournamentPrediction(
+            user_id=current_user.id,
+            champion=payload.champion,
+            runner_up=payload.runner_up,
+            top_scorer=payload.top_scorer,
+            surprise_team=payload.surprise_team,
+            last_updated=now,
+        )
+        db.add(pred)
+
+    await db.commit()
+    return TournamentPredictionResponse(
+        champion=pred.champion,
+        runner_up=pred.runner_up,
+        top_scorer=pred.top_scorer,
+        surprise_team=pred.surprise_team,
+    )
+
+
+@router.post("/debug/simulate-real-scores")
+async def simulate_real_scores(
+    db: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    # Select all matches
+    result = await db.execute(select(Match))
+    matches = result.scalars().all()
+
+    now = datetime.utcnow()
+    updated_count = 0
+    for m in matches:
+        home_score = random.randint(0, 4)
+        away_score = random.randint(0, 4)
+
+        score_changed = m.home_score != home_score or m.away_score != away_score
+
+        m.home_score = home_score
+        m.away_score = away_score
+        m.status = "FT"
+        m.last_updated = now
+
+        if score_changed:
+            pred_result = await db.execute(
+                select(Prediction).where(Prediction.match_id == m.id)  # type: ignore[arg-type]
+            )
+
+            predictions = pred_result.scalars().all()
+            for prediction in predictions:
+                old_points = prediction.points_earned
+                new_points = calculate_points(
+                    prediction.home_score, prediction.away_score, home_score, away_score
+                )
+                prediction.points_earned = new_points
+
+                user = await db.get(User, prediction.user_id)
+                if user:
+                    user.points = user.points - old_points + new_points
+        updated_count += 1
+
+    await db.commit()
+    return {"message": f"Simulated scores for {updated_count} matches.", "success": True}
+

@@ -16,6 +16,8 @@ export interface Match {
   away_score: number | null;
   status: string;
   date: string;
+  group?: string | null;
+  stage?: string | null;
 }
 
 export interface Prediction {
@@ -24,6 +26,13 @@ export interface Prediction {
   home_score: number;
   away_score: number;
   points_earned: number;
+}
+
+export interface TournamentPrediction {
+  champion: string | null;
+  runner_up: string | null;
+  top_scorer: string | null;
+  surprise_team: string | null;
 }
 
 export interface LeaderboardUser {
@@ -129,4 +138,39 @@ export const api = {
     }
     return (await res.json()) as LeaderboardResponse;
   },
+
+  async getTournamentPredictions(): Promise<TournamentPrediction> {
+    const res = await fetch(`${API_URL}/api/tournament-predictions`, {
+      headers: getHeaders(),
+    });
+    if (!res.ok) {
+      throw new Error("Error al obtener apuestas especiales");
+    }
+    return (await res.json()) as TournamentPrediction;
+  },
+
+  async saveTournamentPredictions(preds: TournamentPrediction): Promise<TournamentPrediction> {
+    const res = await fetch(`${API_URL}/api/tournament-predictions`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(preds),
+    });
+    if (!res.ok) {
+      const errorData = (await res.json().catch(() => ({}))) as { detail?: string };
+      throw new Error(errorData.detail || "Error al guardar apuestas especiales");
+    }
+    return (await res.json()) as TournamentPrediction;
+  },
+
+  async simulateRealScores(): Promise<{ message: string; success: boolean }> {
+    const res = await fetch(`${API_URL}/api/debug/simulate-real-scores`, {
+      method: "POST",
+      headers: getHeaders(),
+    });
+    if (!res.ok) {
+      throw new Error("Error al simular resultados reales");
+    }
+    return (await res.json()) as { message: string; success: boolean };
+  },
 };
+

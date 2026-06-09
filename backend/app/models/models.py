@@ -12,6 +12,9 @@ class User(SQLModel, table=True):
 
     # Relationships
     predictions: list["Prediction"] = Relationship(back_populates="user")
+    tournament_prediction: "TournamentPrediction" = Relationship(
+        back_populates="user", sa_relationship_kwargs={"uselist": False}
+    )
 
 
 class Match(SQLModel, table=True):
@@ -23,6 +26,8 @@ class Match(SQLModel, table=True):
     away_score: int | None = Field(default=None)
     status: str  # e.g., "NS" (Not Started), "FT" (Full Time), "1H", "2H"
     date: datetime
+    group: str | None = Field(default=None)
+    stage: str | None = Field(default=None)
     last_updated: datetime = Field(default_factory=datetime.utcnow)
 
     # Relationships
@@ -41,3 +46,17 @@ class Prediction(SQLModel, table=True):
     # Relationships
     user: User = Relationship(back_populates="predictions")
     match: Match = Relationship(back_populates="predictions")
+
+
+class TournamentPrediction(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True, unique=True)
+    champion: str | None = Field(default=None)
+    runner_up: str | None = Field(default=None)
+    top_scorer: str | None = Field(default=None)
+    surprise_team: str | None = Field(default=None)
+    last_updated: datetime = Field(default_factory=datetime.utcnow)
+
+    # Relationships
+    user: User = Relationship(back_populates="tournament_prediction")
+
