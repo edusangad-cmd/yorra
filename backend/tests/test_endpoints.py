@@ -48,6 +48,12 @@ async def do_db_cleanup() -> None:
         for u in user_res.scalars().all():
             await session.delete(u)
 
+        user_res2 = await session.execute(
+            select(User).where(User.telegram_id == "pedro_perez")  # type: ignore[arg-type]
+        )
+        for u in user_res2.scalars().all():
+            await session.delete(u)
+
         await session.commit()
 
 
