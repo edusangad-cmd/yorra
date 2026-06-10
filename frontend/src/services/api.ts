@@ -25,6 +25,7 @@ export interface Prediction {
   match_id: number;
   home_score: number;
   away_score: number;
+  penalty_winner_home?: boolean | null;
   points_earned: number;
 }
 
@@ -32,6 +33,7 @@ export interface TournamentPrediction {
   champion: string | null;
   runner_up: string | null;
   top_scorer: string | null;
+  best_goalkeeper: string | null;
   surprise_team: string | null;
 }
 
@@ -127,7 +129,8 @@ export const api = {
   async placePrediction(
     matchId: number,
     homeScore: number,
-    awayScore: number
+    awayScore: number,
+    penaltyWinnerHome?: boolean | null
   ): Promise<Prediction> {
     const res = await fetch(`${API_URL}/api/predictions`, {
       method: "POST",
@@ -136,6 +139,7 @@ export const api = {
         match_id: matchId,
         home_score: homeScore,
         away_score: awayScore,
+        penalty_winner_home: penaltyWinnerHome,
       }),
     });
     if (!res.ok) {

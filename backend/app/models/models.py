@@ -40,6 +40,7 @@ class Prediction(SQLModel, table=True):
     match_id: int = Field(foreign_key="match.id", index=True)
     home_score: int
     away_score: int
+    penalty_winner_home: bool | None = Field(default=None, nullable=True)
     points_earned: int = Field(default=0)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -54,6 +55,7 @@ class TournamentPrediction(SQLModel, table=True):
     champion: str | None = Field(default=None)
     runner_up: str | None = Field(default=None)
     top_scorer: str | None = Field(default=None)
+    best_goalkeeper: str | None = Field(default=None)
     surprise_team: str | None = Field(default=None)
     last_updated: datetime = Field(default_factory=datetime.utcnow)
 
