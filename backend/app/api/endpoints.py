@@ -371,3 +371,35 @@ async def simulate_real_scores(
     await db.commit()
     return {"message": f"Simulated scores for {updated_count} matches.", "success": True}
 
+
+@router.post("/predictions/reset")
+async def reset_predictions(
+    db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, str]:
+    from sqlalchemy import delete
+    # Delete all predictions and tournament predictions for current_user
+    await db.execute(delete(Prediction).where(Prediction.user_id == current_user.id))  # type: ignore[arg-type]
+    await db.execute(delete(TournamentPrediction).where(TournamentPrediction.user_id == current_user.id))  # type: ignore[arg-type]
+    # Reset all users points
+    await MatchService.recalculate_all_users_points(db)
+    await db.commit()
+    return {"message": "Tus pronósticos han sido reseteados correctamente."}
+
+
+@router.post("/debug/reset-real-scores")
+async def reset_real_scores(
+    db: AsyncSession = Depends(get_session),
+) -> dict[str, str]:
+    # Fetch all matches
+    result = await db.execute(select(Match))
+    matches = result.scalars().all()
+    for m in matches:
+        m.home_score = None
+        m.away_score = None
+        m.status = "NS"
+    # Recalculate all users points
+    await MatchService.recalculate_all_users_points(db)
+    await db.commit()
+    return {"message": "Los resultados reales del torneo han sido reseteados."}
+

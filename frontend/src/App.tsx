@@ -13,59 +13,207 @@ const ALL_TEAMS_ES = [
 ].sort();
 
 const TOP_PLAYERS = [
-  "Kylian Mbappé (Francia)",
-  "Erling Haaland (Noruega)",
-  "Robert Lewandowski (Polonia)",
-  "Harry Kane (Inglaterra)",
-  "Vinícius Jr (Brasil)",
-  "Lionel Messi (Argentina)",
-  "Jude Bellingham (Inglaterra)",
   "Jamal Musiala (Alemania)",
   "Florian Wirtz (Alemania)",
-  "Lamine Yamal (España)",
-  "Nico Williams (España)",
+  "Kai Havertz (Alemania)",
+  "Leroy Sané (Alemania)",
+  "Niclas Füllkrug (Alemania)",
+  "Salem Al-Dawsari (Arabia Saudí)",
+  "Firas Al-Buraikan (Arabia Saudí)",
+  "Riyad Mahrez (Argelia)",
+  "Amine Gouiri (Argelia)",
+  "Baghdad Bounedjah (Argelia)",
+  "Lionel Messi (Argentina)",
   "Lautaro Martínez (Argentina)",
-  "Cristiano Ronaldo (Portugal)",
-  "Mohamed Salah (Egipto)",
-  "Phil Foden (Inglaterra)",
-  "Rodrygo Goes (Brasil)",
-  "Bukayo Saka (Inglaterra)",
-  "Antoine Griezmann (Francia)",
-  "Alvaro Morata (España)",
-  "Julian Alvarez (Argentina)",
-  "Luis Díaz (Colombia)",
-  "Darwin Núñez (Uruguay)",
-  "Federico Valverde (Uruguay)",
-  "Christian Pulisic (Estados Unidos)",
-  "Jonathan David (Canadá)",
-  "Son Heung-min (Corea del Sur)",
-  "Victor Osimhen (Nigeria)",
-  "Rafael Leão (Portugal)",
-  "Bruno Fernandes (Portugal)",
-  "Dušan Vlahović (Serbia)",
+  "Julián Álvarez (Argentina)",
+  "Enzo Fernández (Argentina)",
+  "Alexis Mac Allister (Argentina)",
+  "Mitchell Duke (Australia)",
+  "Craig Goodwin (Australia)",
+  "Nestory Irankunda (Australia)",
+  "Marcel Sabitzer (Austria)",
+  "Christoph Baumgartner (Austria)",
+  "Michael Gregoritsch (Austria)",
   "Kevin De Bruyne (Bélgica)",
   "Romelu Lukaku (Bélgica)",
-  "Kai Havertz (Alemania)"
+  "Jérémy Doku (Bélgica)",
+  "Leandro Trossard (Bélgica)",
+  "Edin Džeko (Bosnia y Herzegovina)",
+  "Ermedin Demirović (Bosnia y Herzegovina)",
+  "Vinícius Jr (Brasil)",
+  "Rodrygo Goes (Brasil)",
+  "Neymar Jr (Brasil)",
+  "Raphinha (Brasil)",
+  "Endrick (Brasil)",
+  "Ryan Mendes (Cabo Verde)",
+  "Garry Rodrigues (Cabo Verde)",
+  "Alphonso Davies (Canadá)",
+  "Jonathan David (Canadá)",
+  "Cyle Larin (Canadá)",
+  "Akram Afif (Catar)",
+  "Almoez Ali (Catar)",
+  "Luis Díaz (Colombia)",
+  "James Rodríguez (Colombia)",
+  "Jhon Durán (Colombia)",
+  "Luis Sinisterra (Colombia)",
+  "Son Heung-min (Corea del Sur)",
+  "Hwang Hee-chan (Corea del Sur)",
+  "Lee Kang-in (Corea del Sur)",
+  "Sébastien Haller (Costa de Marfil)",
+  "Simon Adingra (Costa de Marfil)",
+  "Franck Kessié (Costa de Marfil)",
+  "Luka Modrić (Croacia)",
+  "Andrej Kramarić (Croacia)",
+  "Mateo Kovačić (Croacia)",
+  "Juninho Bacuna (Curazao)",
+  "Kenji Gorré (Curazao)",
+  "Enner Valencia (Ecuador)",
+  "Moisés Caicedo (Ecuador)",
+  "Kendry Páez (Ecuador)",
+  "Scott McTominay (Escocia)",
+  "John McGinn (Escocia)",
+  "Lamine Yamal (España)",
+  "Nico Williams (España)",
+  "Álvaro Morata (España)",
+  "Dani Olmo (España)",
+  "Pedri González (España)",
+  "Rodri Hernández (España)",
+  "Christian Pulisic (Estados Unidos)",
+  "Folarin Balogun (Estados Unidos)",
+  "Timothy Weah (Estados Unidos)",
+  "Weston McKennie (Estados Unidos)",
+  "Kylian Mbappé (Francia)",
+  "Antoine Griezmann (Francia)",
+  "Ousmane Dembélé (Francia)",
+  "Marcus Thuram (Francia)",
+  "Olivier Giroud (Francia)",
+  "Mohammed Kudus (Ghana)",
+  "Inaki Williams (Ghana)",
+  "Jordan Ayew (Ghana)",
+  "Duckens Nazon (Haití)",
+  "Frantzdy Pierrot (Haití)",
+  "Harry Kane (Inglaterra)",
+  "Jude Bellingham (Inglaterra)",
+  "Bukayo Saka (Inglaterra)",
+  "Phil Foden (Inglaterra)",
+  "Cole Palmer (Inglaterra)",
+  "Aymen Hussein (Irak)",
+  "Mohanad Ali (Irak)",
+  "Mehdi Taremi (Irán)",
+  "Sardar Azmoun (Irán)",
+  "Federico Chiesa (Italia)",
+  "Nicolò Barella (Italia)",
+  "Mateo Retegui (Italia)",
+  "Kaoru Mitoma (Japón)",
+  "Takefusa Kubo (Japón)",
+  "Ayase Ueda (Japón)",
+  "Takumi Minamino (Japón)",
+  "Mousa Al-Tamari (Jordania)",
+  "Yazan Al-Naimat (Jordania)",
+  "Youssef En-Nesyri (Marruecos)",
+  "Hakim Ziyech (Marruecos)",
+  "Achraf Hakimi (Marruecos)",
+  "Brahim Díaz (Marruecos)",
+  "Santiago Giménez (México)",
+  "Hirving Lozano (México)",
+  "Edson Álvarez (México)",
+  "Erling Haaland (Noruega)",
+  "Martin Ødegaard (Noruega)",
+  "Alexander Sørloth (Noruega)",
+  "Chris Wood (Nueva Zelanda)",
+  "Ben Waine (Nueva Zelanda)",
+  "Cody Gakpo (Países Bajos)",
+  "Memphis Depay (Países Bajos)",
+  "Xavi Simons (Países Bajos)",
+  "José Fajardo (Panamá)",
+  "Ismael Díaz (Panamá)",
+  "Julio Enciso (Paraguay)",
+  "Miguel Almirón (Paraguay)",
+  "Antonio Sanabria (Paraguay)",
+  "Cristiano Ronaldo (Portugal)",
+  "Rafael Leão (Portugal)",
+  "Bruno Fernandes (Portugal)",
+  "Bernardo Silva (Portugal)",
+  "Patrik Schick (República Checa)",
+  "Tomáš Souček (República Checa)",
+  "Yoane Wissa (República Democrática del Congo)",
+  "Cédric Bakambu (República Democrática del Congo)",
+  "Sadio Mané (Senegal)",
+  "Nicolas Jackson (Senegal)",
+  "Percy Tau (Sudáfrica)",
+  "Themba Zwane (Sudáfrica)",
+  "Alexander Isak (Suecia)",
+  "Viktor Gyökeres (Suecia)",
+  "Dejan Kulusevski (Suecia)",
+  "Breel Embolo (Suiza)",
+  "Zeki Amdouni (Suiza)",
+  "Youssef Msakni (Túnez)",
+  "Elias Achouri (Túnez)",
+  "Arda Güler (Turquía)",
+  "Kenan Yıldız (Turquía)",
+  "Hakan Çalhanoğlu (Turquía)",
+  "Darwin Núñez (Uruguay)",
+  "Federico Valverde (Uruguay)",
+  "Luis Suárez (Uruguay)",
+  "Eldor Shomurodov (Uzbekistán)",
+  "Oston Urunov (Uzbekistán)"
 ].sort();
 
 const TOP_GOALKEEPERS = [
+  "Manuel Neuer (Alemania)",
+  "Marc-André ter Stegen (Alemania)",
+  "Mohammed Al-Owais (Arabia Saudí)",
+  "Anthony Mandrea (Argelia)",
   "Emiliano Martínez (Argentina)",
+  "Mathew Ryan (Australia)",
+  "Patrick Pentz (Austria)",
+  "Koen Casteels (Bélgica)",
   "Thibaut Courtois (Bélgica)",
-  "Unai Simón (España)",
-  "Mike Maignan (Francia)",
+  "Nikola Vasilj (Bosnia y Herzegovina)",
   "Alisson Becker (Brasil)",
   "Ederson Moraes (Brasil)",
-  "Marc-André ter Stegen (Alemania)",
-  "Manuel Neuer (Alemania)",
-  "Jan Oblak (Eslovenia)",
-  "Gianluigi Donnarumma (Italia)",
-  "Jordan Pickford (Inglaterra)",
-  "Diogo Costa (Portugal)",
-  "Yassine Bounou (Marruecos)",
+  "Vozinha (Cabo Verde)",
+  "Maxime Crépeau (Canadá)",
+  "Meshaal Barsham (Catar)",
+  "Camilo Vargas (Colombia)",
+  "Jo Hyeon-woo (Corea del Sur)",
+  "Yahia Fofana (Costa de Marfil)",
+  "Dominik Livaković (Croacia)",
+  "Eloy Room (Curazao)",
+  "Alexander Domínguez (Ecuador)",
+  "Angus Gunn (Escocia)",
+  "Unai Simón (España)",
   "David Raya (España)",
-  "Gregor Kobel (Suiza)",
+  "Matt Turner (Estados Unidos)",
+  "Mike Maignan (Francia)",
+  "Lawrence Ati-Zigi (Ghana)",
+  "Johny Placide (Haití)",
+  "Jordan Pickford (Inglaterra)",
+  "Jalal Hassan (Irak)",
+  "Alireza Beiranvand (Irán)",
+  "Gianluigi Donnarumma (Italia)",
+  "Zion Suzuki (Japón)",
+  "Yazid Abu Layla (Jordania)",
+  "Yassine Bounou (Marruecos)",
+  "Luis Malagón (México)",
+  "Guillermo Ochoa (México)",
+  "Ørjan Nyland (Noruega)",
+  "Alex Paulsen (Nueva Zelanda)",
+  "Bart Verbruggen (Países Bajos)",
+  "Orlando Mosquera (Panamá)",
+  "Gatito Fernández (Paraguay)",
+  "Diogo Costa (Portugal)",
+  "Jindřich Staněk (República Checa)",
+  "Lionel Mpasi (República Democrática del Congo)",
+  "Édouard Mendy (Senegal)",
+  "Ronwen Williams (Sudáfrica)",
+  "Robin Olsen (Suecia)",
   "Yann Sommer (Suiza)",
-  "Matt Turner (Estados Unidos)"
+  "Gregor Kobel (Suiza)",
+  "Bechir Ben Saïd (Túnez)",
+  "Uğurcan Çakır (Turquía)",
+  "Sergio Rochet (Uruguay)",
+  "Utkir Yusupov (Uzbekistán)"
 ].sort();
 
 function isTeamPlaceholder(teamName: string): boolean {
@@ -427,6 +575,45 @@ function App() {
     }
   };
 
+  const handleResetMyPredictions = async () => {
+    if (!window.confirm("¿Seguro que quieres borrar todos tus pronósticos? Esta acción no se puede deshacer.")) return;
+    setIsSimulatingAll(true);
+    try {
+      const data = await api.resetPredictions();
+      alert(data.message);
+      setEditingScores({});
+      setEditingPenaltyWinners({});
+      setTournamentPredictions({
+        champion: null,
+        runner_up: null,
+        top_scorer: null,
+        best_goalkeeper: null,
+        surprise_team: null,
+      });
+      await fetchDashboardData();
+    } catch (err: unknown) {
+      const error = err as Error;
+      alert(error.message || "Error al resetear tus pronósticos");
+    } finally {
+      setIsSimulatingAll(false);
+    }
+  };
+
+  const handleResetRealScores = async () => {
+    if (!window.confirm("¿Seguro que quieres resetear los resultados reales oficiales a un estado sin empezar? Esto restablecerá todos los puntos.")) return;
+    setIsSimulatingAll(true);
+    try {
+      const data = await api.resetRealScores();
+      alert(data.message);
+      await fetchDashboardData();
+    } catch (err: unknown) {
+      const error = err as Error;
+      alert(error.message || "Error al resetear resultados reales");
+    } finally {
+      setIsSimulatingAll(false);
+    }
+  };
+
   // Standings & Bracket Calculations
   const { standings, resolvedBracket } = useMemo(() => {
     // 1. Calculate Group Standings
@@ -501,22 +688,44 @@ function App() {
       });
     });
 
+    // Check which groups are fully filled (all 6 matches have real score, prediction, or draft)
+    const resolvedGroups = new Set<string>();
+    const allGroups = new Set(matches.filter(m => m.stage === "group" && m.group).map(m => m.group as string));
+
+    allGroups.forEach((g) => {
+      const groupMatches = matches.filter(m => m.stage === "group" && m.group === g);
+      const isFilled = groupMatches.every((m) => {
+        const hasReal = m.home_score !== null && m.away_score !== null;
+        const hasPred = predictions[m.id] !== undefined;
+        const hasDraft = editingScores[m.id] && editingScores[m.id].home !== "" && editingScores[m.id].away !== "";
+        return hasReal || hasPred || hasDraft;
+      });
+      if (isFilled) {
+        resolvedGroups.add(g);
+      }
+    });
+
     // 2. Resolve Bracket
     const group1st: Record<string, string> = {};
     const group2nd: Record<string, string> = {};
     const group3rdList: { group: string; team: string; points: number; goalDiff: number; goalsFor: number }[] = [];
 
     Object.entries(sortedStandings).forEach(([g, list]) => {
-      if (list[0]) group1st[g] = list[0].team;
-      if (list[1]) group2nd[g] = list[1].team;
-      if (list[2]) {
-        group3rdList.push({
-          group: g,
-          team: list[2].team,
-          points: list[2].points,
-          goalDiff: list[2].goalDiff,
-          goalsFor: list[2].goalsFor,
-        });
+      if (resolvedGroups.has(g)) {
+        if (list[0]) group1st[g] = list[0].team;
+        if (list[1]) group2nd[g] = list[1].team;
+        if (list[2]) {
+          group3rdList.push({
+            group: g,
+            team: list[2].team,
+            points: list[2].points,
+            goalDiff: list[2].goalDiff,
+            goalsFor: list[2].goalsFor,
+          });
+        }
+      } else {
+        group1st[g] = `1º Grupo ${g}`;
+        group2nd[g] = `2º Grupo ${g}`;
       }
     });
 
@@ -527,7 +736,8 @@ function App() {
       return a.group.localeCompare(b.group);
     });
 
-    const qualified3rdGroups = new Set(sorted3rd.slice(0, 8).map((x) => x.group));
+    const allGroupsResolved = resolvedGroups.size === allGroups.size;
+    const qualified3rdGroups = allGroupsResolved ? new Set(sorted3rd.slice(0, 8).map((x) => x.group)) : new Set<string>();
     const resolved: Record<number, { home: string; away: string }> = {};
 
     matches.forEach((m) => {
@@ -634,16 +844,18 @@ function App() {
 
     const assigned3rdGroups = new Set<string>();
     const assign3rdTeam = (allowedGroups: string[]): string => {
-      for (const item of sorted3rd) {
-        if (allowedGroups.includes(item.group) && qualified3rdGroups.has(item.group) && !assigned3rdGroups.has(item.group)) {
-          assigned3rdGroups.add(item.group);
-          return item.team;
+      if (allGroupsResolved) {
+        for (const item of sorted3rd) {
+          if (allowedGroups.includes(item.group) && qualified3rdGroups.has(item.group) && !assigned3rdGroups.has(item.group)) {
+            assigned3rdGroups.add(item.group);
+            return item.team;
+          }
         }
-      }
-      for (const item of sorted3rd) {
-        if (allowedGroups.includes(item.group) && !assigned3rdGroups.has(item.group)) {
-          assigned3rdGroups.add(item.group);
-          return item.team;
+        for (const item of sorted3rd) {
+          if (allowedGroups.includes(item.group) && !assigned3rdGroups.has(item.group)) {
+            assigned3rdGroups.add(item.group);
+            return item.team;
+          }
         }
       }
       return `3º Grupo ${allowedGroups.join("/")}`;
@@ -1154,8 +1366,14 @@ function App() {
         <button onClick={handleSimulateMyPredictions} className="btn-save-pred" style={{ background: "rgba(139, 92, 246, 0.2)", color: "#c084fc", border: "1px solid rgba(139, 92, 246, 0.4)" }}>
           🎲 Simular mis Pronósticos
         </button>
+        <button onClick={handleResetMyPredictions} className="btn-save-pred" style={{ background: "rgba(139, 92, 246, 0.1)", color: "#e9d5ff", border: "1px solid rgba(139, 92, 246, 0.2)" }} disabled={isSimulatingAll}>
+          🧹 Resetear mis Pronósticos
+        </button>
         <button onClick={handleSimulateRealScores} className="btn-save-pred" style={{ background: "rgba(239, 68, 68, 0.2)", color: "#f87171", border: "1px solid rgba(239, 68, 68, 0.4)" }} disabled={isSimulatingAll}>
           {isSimulatingAll ? "Simulando..." : "🎲 Simular Resultados Reales (Admin)"}
+        </button>
+        <button onClick={handleResetRealScores} className="btn-save-pred" style={{ background: "rgba(239, 68, 68, 0.1)", color: "#fecaca", border: "1px solid rgba(239, 68, 68, 0.2)" }} disabled={isSimulatingAll}>
+          🧹 Resetear Resultados Reales (Admin)
         </button>
       </div>
 

@@ -91,26 +91,44 @@ def resolve_bracket_teams(
         teams_list.sort(key=cmp_to_key(compare_teams))
         sorted_standings[g] = [str(t["team"]) for t in teams_list]
 
+    # Find which groups are fully resolved (all 6 group matches have scores in scores_map)
+    all_groups = {m.group for m in matches if m.stage == "group" and m.group}
+    resolved_groups = set()
+    for g in all_groups:
+        group_matches = [m for m in matches if m.stage == "group" and m.group == g]
+        is_filled = True
+        for m in group_matches:
+            val = scores_map.get(m.id)
+            if val is None or val[0] is None or val[1] is None:
+                is_filled = False
+                break
+        if is_filled:
+            resolved_groups.add(g)
+
     # 2. Resolve Bracket
     group_1st = {}
     group_2nd = {}
     group_3rd_list = []
 
     for g, list_teams in sorted_standings.items():
-        if len(list_teams) > 0:
-            group_1st[g] = list_teams[0]
-        if len(list_teams) > 1:
-            group_2nd[g] = list_teams[1]
-        if len(list_teams) > 2:
-            team_3rd = list_teams[2]
-            stats = group_standings[g][team_3rd]
-            group_3rd_list.append({
-                "group": g,
-                "team": team_3rd,
-                "points": stats["points"],
-                "goalDiff": stats["goalDiff"],
-                "goalsFor": stats["goalsFor"]
-            })
+        if g in resolved_groups:
+            if len(list_teams) > 0:
+                group_1st[g] = list_teams[0]
+            if len(list_teams) > 1:
+                group_2nd[g] = list_teams[1]
+            if len(list_teams) > 2:
+                team_3rd = list_teams[2]
+                stats = group_standings[g][team_3rd]
+                group_3rd_list.append({
+                    "group": g,
+                    "team": team_3rd,
+                    "points": stats["points"],
+                    "goalDiff": stats["goalDiff"],
+                    "goalsFor": stats["goalsFor"]
+                })
+        else:
+            group_1st[g] = f"1º Grupo {g}"
+            group_2nd[g] = f"2º Grupo {g}"
 
     def compare_3rd(a: dict[str, Any], b: dict[str, Any]) -> int:
         if b["points"] != a["points"]:
@@ -125,19 +143,22 @@ def resolve_bracket_teams(
             return 1
         return 0
 
+    all_groups_resolved = len(resolved_groups) == len(all_groups)
+
     group_3rd_list.sort(key=cmp_to_key(compare_3rd))
-    qualified_3rd_groups = set([str(item["group"]) for item in group_3rd_list[:8]])
+    qualified_3rd_groups = set([str(item["group"]) for item in group_3rd_list[:8]]) if all_groups_resolved else set()
 
     assigned_3rd_groups = set()
     def assign_3rd_team(allowed_groups: list[str]) -> str:
-        for item in group_3rd_list:
-            if item["group"] in allowed_groups and item["group"] in qualified_3rd_groups and item["group"] not in assigned_3rd_groups:
-                assigned_3rd_groups.add(item["group"])
-                return str(item["team"])
-        for item in group_3rd_list:
-            if item["group"] in allowed_groups and item["group"] not in assigned_3rd_groups:
-                assigned_3rd_groups.add(item["group"])
-                return str(item["team"])
+        if all_groups_resolved:
+            for item in group_3rd_list:
+                if item["group"] in allowed_groups and item["group"] in qualified_3rd_groups and item["group"] not in assigned_3rd_groups:
+                    assigned_3rd_groups.add(item["group"])
+                    return str(item["team"])
+            for item in group_3rd_list:
+                if item["group"] in allowed_groups and item["group"] not in assigned_3rd_groups:
+                    assigned_3rd_groups.add(item["group"])
+                    return str(item["team"])
         return f"3º Grupo {'/'.join(allowed_groups)}"
 
     resolved = {}
@@ -288,6 +309,8 @@ class MatchService:
                 if db_match.home_score != home_score or db_match.away_score != away_score:
                     score_changed = True
 
+                db_match.home_team = home_team
+                db_match.away_team = away_team
                 db_match.home_score = home_score
                 db_match.away_score = away_score
                 db_match.status = status

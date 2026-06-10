@@ -192,5 +192,27 @@ export const api = {
     }
     return (await res.json()) as { message: string; success: boolean };
   },
+
+  async resetPredictions(): Promise<{ message: string }> {
+    const res = await fetch(`${API_URL}/api/predictions/reset`, {
+      method: "POST",
+      headers: getHeaders(),
+    });
+    if (!res.ok) {
+      throw new Error("Error al resetear tus pronósticos");
+    }
+    return (await res.json()) as { message: string };
+  },
+
+  async resetRealScores(): Promise<{ message: string }> {
+    const res = await fetch(`${API_URL}/api/debug/reset-real-scores`, {
+      method: "POST",
+      headers: getHeaders(),
+    });
+    if (!res.ok) {
+      throw new Error("Error al resetear resultados reales");
+    }
+    return (await res.json()) as { message: string };
+  },
 };
 
