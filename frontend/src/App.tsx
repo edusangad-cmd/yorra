@@ -4,62 +4,258 @@ import type { Match, Prediction, User, LeaderboardUser, TournamentPrediction } f
 
 const ALL_TEAMS_ES = [
   "Alemania", "Arabia Saudí", "Argelia", "Argentina", "Australia", "Austria", "Bélgica", 
-  "Bosnia y Herzegovina", "Brasil", "Cabo Verde", "Canadá", "Catar", "Chequia", "Colombia", 
+  "Bosnia y Herzegovina", "Brasil", "Cabo Verde", "Canadá", "Catar", "Colombia", 
   "Corea del Sur", "Costa de Marfil", "Croacia", "Curazao", "Ecuador", "Egipto", "Escocia", 
   "España", "Estados Unidos", "Francia", "Ghana", "Haití", "Inglaterra", "Irán", "Irak", 
-  "Italia", "Japón", "Jordania", "Marruecos", "México", "Noruega", "Nueva Zelanda", "Países Bajos", 
-  "Panamá", "Paraguay", "Portugal", "República Democrática del Congo", "Senegal", "Sudáfrica", 
-  "Suecia", "Suiza", "Túnez", "Turquía", "Uruguay", "Uzbekistán"
+  "Japón", "Jordania", "Marruecos", "México", "Noruega", "Nueva Zelanda", "Países Bajos", 
+  "Panamá", "Paraguay", "Portugal", "República Checa", "República Democrática del Congo", 
+  "Senegal", "Sudáfrica", "Suecia", "Suiza", "Túnez", "Turquía", "Uruguay", "Uzbekistán"
 ].sort();
 
 const TOP_PLAYERS = [
-  "Kylian Mbappé (Francia)",
-  "Erling Haaland (Noruega)",
-  "Robert Lewandowski (Polonia)",
-  "Harry Kane (Inglaterra)",
-  "Vinícius Jr (Brasil)",
-  "Lionel Messi (Argentina)",
-  "Jude Bellingham (Inglaterra)",
   "Jamal Musiala (Alemania)",
   "Florian Wirtz (Alemania)",
+  "Kai Havertz (Alemania)",
+  "Leroy Sané (Alemania)",
+  "Niclas Füllkrug (Alemania)",
+  "Salem Al-Dawsari (Arabia Saudí)",
+  "Firas Al-Buraikan (Arabia Saudí)",
+  "Riyad Mahrez (Argelia)",
+  "Amine Gouiri (Argelia)",
+  "Baghdad Bounedjah (Argelia)",
+  "Lionel Messi (Argentina)",
+  "Lautaro Martínez (Argentina)",
+  "Julián Álvarez (Argentina)",
+  "Enzo Fernández (Argentina)",
+  "Alexis Mac Allister (Argentina)",
+  "Mitchell Duke (Australia)",
+  "Craig Goodwin (Australia)",
+  "Nestory Irankunda (Australia)",
+  "Marcel Sabitzer (Austria)",
+  "Christoph Baumgartner (Austria)",
+  "Michael Gregoritsch (Austria)",
+  "Kevin De Bruyne (Bélgica)",
+  "Romelu Lukaku (Bélgica)",
+  "Jérémy Doku (Bélgica)",
+  "Leandro Trossard (Bélgica)",
+  "Edin Džeko (Bosnia y Herzegovina)",
+  "Ermedin Demirović (Bosnia y Herzegovina)",
+  "Vinícius Jr (Brasil)",
+  "Rodrygo Goes (Brasil)",
+  "Neymar Jr (Brasil)",
+  "Raphinha (Brasil)",
+  "Endrick (Brasil)",
+  "Ryan Mendes (Cabo Verde)",
+  "Garry Rodrigues (Cabo Verde)",
+  "Alphonso Davies (Canadá)",
+  "Jonathan David (Canadá)",
+  "Cyle Larin (Canadá)",
+  "Akram Afif (Catar)",
+  "Almoez Ali (Catar)",
+  "Luis Díaz (Colombia)",
+  "James Rodríguez (Colombia)",
+  "Jhon Durán (Colombia)",
+  "Luis Sinisterra (Colombia)",
+  "Son Heung-min (Corea del Sur)",
+  "Hwang Hee-chan (Corea del Sur)",
+  "Lee Kang-in (Corea del Sur)",
+  "Sébastien Haller (Costa de Marfil)",
+  "Simon Adingra (Costa de Marfil)",
+  "Franck Kessié (Costa de Marfil)",
+  "Luka Modrić (Croacia)",
+  "Andrej Kramarić (Croacia)",
+  "Mateo Kovačić (Croacia)",
+  "Juninho Bacuna (Curazao)",
+  "Kenji Gorré (Curazao)",
+  "Enner Valencia (Ecuador)",
+  "Moisés Caicedo (Ecuador)",
+  "Kendry Páez (Ecuador)",
+  "Scott McTominay (Escocia)",
+  "John McGinn (Escocia)",
   "Lamine Yamal (España)",
   "Nico Williams (España)",
-  "Lautaro Martínez (Argentina)",
-  "Cristiano Ronaldo (Portugal)",
-  "Mohamed Salah (Egipto)",
+  "Álvaro Morata (España)",
+  "Dani Olmo (España)",
+  "Pedri González (España)",
+  "Rodri Hernández (España)",
+  "Christian Pulisic (Estados Unidos)",
+  "Folarin Balogun (Estados Unidos)",
+  "Timothy Weah (Estados Unidos)",
+  "Weston McKennie (Estados Unidos)",
+  "Kylian Mbappé (Francia)",
+  "Antoine Griezmann (Francia)",
+  "Ousmane Dembélé (Francia)",
+  "Marcus Thuram (Francia)",
+  "Olivier Giroud (Francia)",
+  "Mohammed Kudus (Ghana)",
+  "Inaki Williams (Ghana)",
+  "Jordan Ayew (Ghana)",
+  "Duckens Nazon (Haití)",
+  "Frantzdy Pierrot (Haití)",
+  "Harry Kane (Inglaterra)",
+  "Jude Bellingham (Inglaterra)",
+  "Bukayo Saka (Inglaterra)",
   "Phil Foden (Inglaterra)",
-  "Rodrygo Goes (Brasil)"
+  "Cole Palmer (Inglaterra)",
+  "Aymen Hussein (Irak)",
+  "Mohanad Ali (Irak)",
+  "Mehdi Taremi (Irán)",
+  "Sardar Azmoun (Irán)",
+  "Federico Chiesa (Italia)",
+  "Nicolò Barella (Italia)",
+  "Mateo Retegui (Italia)",
+  "Kaoru Mitoma (Japón)",
+  "Takefusa Kubo (Japón)",
+  "Ayase Ueda (Japón)",
+  "Takumi Minamino (Japón)",
+  "Mousa Al-Tamari (Jordania)",
+  "Yazan Al-Naimat (Jordania)",
+  "Youssef En-Nesyri (Marruecos)",
+  "Hakim Ziyech (Marruecos)",
+  "Achraf Hakimi (Marruecos)",
+  "Brahim Díaz (Marruecos)",
+  "Santiago Giménez (México)",
+  "Hirving Lozano (México)",
+  "Edson Álvarez (México)",
+  "Erling Haaland (Noruega)",
+  "Martin Ødegaard (Noruega)",
+  "Alexander Sørloth (Noruega)",
+  "Chris Wood (Nueva Zelanda)",
+  "Ben Waine (Nueva Zelanda)",
+  "Cody Gakpo (Países Bajos)",
+  "Memphis Depay (Países Bajos)",
+  "Xavi Simons (Países Bajos)",
+  "José Fajardo (Panamá)",
+  "Ismael Díaz (Panamá)",
+  "Julio Enciso (Paraguay)",
+  "Miguel Almirón (Paraguay)",
+  "Antonio Sanabria (Paraguay)",
+  "Cristiano Ronaldo (Portugal)",
+  "Rafael Leão (Portugal)",
+  "Bruno Fernandes (Portugal)",
+  "Bernardo Silva (Portugal)",
+  "Patrik Schick (República Checa)",
+  "Tomáš Souček (República Checa)",
+  "Yoane Wissa (República Democrática del Congo)",
+  "Cédric Bakambu (República Democrática del Congo)",
+  "Sadio Mané (Senegal)",
+  "Nicolas Jackson (Senegal)",
+  "Percy Tau (Sudáfrica)",
+  "Themba Zwane (Sudáfrica)",
+  "Alexander Isak (Suecia)",
+  "Viktor Gyökeres (Suecia)",
+  "Dejan Kulusevski (Suecia)",
+  "Breel Embolo (Suiza)",
+  "Zeki Amdouni (Suiza)",
+  "Youssef Msakni (Túnez)",
+  "Elias Achouri (Túnez)",
+  "Arda Güler (Turquía)",
+  "Kenan Yıldız (Turquía)",
+  "Hakan Çalhanoğlu (Turquía)",
+  "Darwin Núñez (Uruguay)",
+  "Federico Valverde (Uruguay)",
+  "Luis Suárez (Uruguay)",
+  "Eldor Shomurodov (Uzbekistán)",
+  "Oston Urunov (Uzbekistán)"
 ].sort();
 
+const TOP_GOALKEEPERS = [
+  "Manuel Neuer (Alemania)",
+  "Marc-André ter Stegen (Alemania)",
+  "Mohammed Al-Owais (Arabia Saudí)",
+  "Anthony Mandrea (Argelia)",
+  "Emiliano Martínez (Argentina)",
+  "Mathew Ryan (Australia)",
+  "Patrick Pentz (Austria)",
+  "Koen Casteels (Bélgica)",
+  "Thibaut Courtois (Bélgica)",
+  "Nikola Vasilj (Bosnia y Herzegovina)",
+  "Alisson Becker (Brasil)",
+  "Ederson Moraes (Brasil)",
+  "Vozinha (Cabo Verde)",
+  "Maxime Crépeau (Canadá)",
+  "Meshaal Barsham (Catar)",
+  "Camilo Vargas (Colombia)",
+  "Jo Hyeon-woo (Corea del Sur)",
+  "Yahia Fofana (Costa de Marfil)",
+  "Dominik Livaković (Croacia)",
+  "Eloy Room (Curazao)",
+  "Alexander Domínguez (Ecuador)",
+  "Angus Gunn (Escocia)",
+  "Unai Simón (España)",
+  "David Raya (España)",
+  "Matt Turner (Estados Unidos)",
+  "Mike Maignan (Francia)",
+  "Lawrence Ati-Zigi (Ghana)",
+  "Johny Placide (Haití)",
+  "Jordan Pickford (Inglaterra)",
+  "Jalal Hassan (Irak)",
+  "Alireza Beiranvand (Irán)",
+  "Gianluigi Donnarumma (Italia)",
+  "Zion Suzuki (Japón)",
+  "Yazid Abu Layla (Jordania)",
+  "Yassine Bounou (Marruecos)",
+  "Luis Malagón (México)",
+  "Guillermo Ochoa (México)",
+  "Ørjan Nyland (Noruega)",
+  "Alex Paulsen (Nueva Zelanda)",
+  "Bart Verbruggen (Países Bajos)",
+  "Orlando Mosquera (Panamá)",
+  "Gatito Fernández (Paraguay)",
+  "Diogo Costa (Portugal)",
+  "Jindřich Staněk (República Checa)",
+  "Lionel Mpasi (República Democrática del Congo)",
+  "Édouard Mendy (Senegal)",
+  "Ronwen Williams (Sudáfrica)",
+  "Robin Olsen (Suecia)",
+  "Yann Sommer (Suiza)",
+  "Gregor Kobel (Suiza)",
+  "Bechir Ben Saïd (Túnez)",
+  "Uğurcan Çakır (Turquía)",
+  "Sergio Rochet (Uruguay)",
+  "Utkir Yusupov (Uzbekistán)"
+].sort();
+
+function isTeamPlaceholder(teamName: string): boolean {
+  if (!teamName) return true;
+  return (
+    teamName.includes("Grupo") ||
+    teamName.includes("Partido") ||
+    teamName.includes("º") ||
+    teamName.startsWith("Ganador") ||
+    teamName.startsWith("Perdedor") ||
+    teamName.startsWith("Winner") ||
+    teamName.startsWith("Runner-up") ||
+    teamName.startsWith("Loser")
+  );
+}
+
 function getFlagEmoji(teamName: string): string {
+  if (!teamName) return "⚽️";
   const flags: Record<string, string> = {
-    Spain: "🇪🇸", España: "🇪🇸",
-    Germany: "🇩🇪", Alemania: "🇩🇪",
-    Brazil: "🇧🇷", Brasil: "🇧🇷",
-    Argentina: "🇦🇷",
-    France: "🇫🇷", Francia: "🇫🇷",
-    Italy: "🇮🇹", Italia: "🇮🇹",
-    England: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", Inglaterra: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
-    Portugal: "🇵🇹",
-    Netherlands: "🇳🇱", "Países Bajos": "🇳🇱",
-    Uruguay: "🇺🇾",
-    Mexico: "🇲🇽", México: "🇲🇽",
-    USA: "🇺🇸", "Estados Unidos": "🇺🇸",
-    Canada: "🇨🇦", Canadá: "🇨🇦",
-    Morocco: "🇲🇦", Marruecos: "🇲🇦",
-    Croatia: "🇭🇷", Croacia: "🇭🇷",
-    Japan: "🇯🇵", Japón: "🇯🇵",
-    Belgium: "🇧🇪", Bélgica: "🇧🇪",
-    Senegal: "🇸🇳", Sudáfrica: "🇿🇦",
-    "South Africa": "🇿🇦", Qatar: "🇶🇦",
-    Catar: "🇶🇦", Switzerland: "🇨🇭",
-    Suiza: "🇨🇭", Czechia: "🇨🇿",
-    Chequia: "🇨🇿", "República Checa": "🇨🇿",
-    "Bosnia and Herzegovina": "🇧🇦", "Bosnia y Herzegovina": "🇧🇦",
-    Paraguay: "🇵🇾", Scotland: "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
-    Escocia: "🏴󠁧󠁢󠁳󠁣󠁴󠁿", Turkey: "🇹🇷",
-    Turquía: "🇹🇷", Australia: "🇦🇺",
-    Haiti: "🇭🇹", Haití: "🇭🇹"
+    // English/Universal Names
+    Germany: "🇩🇪", "Saudi Arabia": "🇸🇦", Algeria: "🇩🇿", Argentina: "🇦🇷", Australia: "🇦🇺",
+    Austria: "🇦🇹", Belgium: "🇧🇪", "Bosnia and Herzegovina": "🇧🇦", Brazil: "🇧🇷", "Cape Verde": "🇨🇻",
+    "Cabo Verde": "🇨🇻", Canada: "🇨🇦", Qatar: "🇶🇦", Czechia: "🇨🇿", Czech: "🇨🇿", "Czech Republic": "🇨🇿",
+    Colombia: "🇨🇴", "South Korea": "🇰🇷", "Ivory Coast": "🇨🇮", Croatia: "🇭🇷", "Curaçao": "🇨🇼",
+    Ecuador: "🇪🇨", Egypt: "🇪🇬", Scotland: "🏴󠁧󠁢󠁳󠁣󠁴󠁿", Spain: "🇪🇸", "United States": "🇺🇸", USA: "🇺🇸",
+    France: "🇫🇷", Ghana: "🇬🇭", Haiti: "🇭🇹", England: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", Iran: "🇮🇷", Iraq: "🇮🇶", Italy: "🇮🇹",
+    Japan: "🇯🇵", Jordan: "🇯🇴", Morocco: "🇲🇦", Mexico: "🇲🇽", Norway: "🇳🇴", "New Zealand": "🇳🇿",
+    Netherlands: "🇳🇱", Panama: "🇵🇦", Paraguay: "🇵🇾", Portugal: "🇵🇹", "DR Congo": "🇨🇩",
+    "Democratic Republic of the Congo": "🇨🇩", Senegal: "🇸🇳", "South Africa": "🇿🇦", Sweden: "🇸🇪",
+    Switzerland: "🇨🇭", Tunisia: "🇹🇳", Turkey: "🇹🇷", Uruguay: "🇺🇾", Uzbekistan: "🇺🇿",
+    
+    // Spanish Names (translated differently)
+    "Alemania": "🇩🇪", "Arabia Saudí": "🇸🇦", "Argelia": "🇩🇿", "Bélgica": "🇧🇪",
+    "Bosnia y Herzegovina": "🇧🇦", "Brasil": "🇧🇷", "Canadá": "🇨🇦", "Catar": "🇶🇦",
+    "Chequia": "🇨🇿", "República Checa": "🇨🇿", "Corea del Sur": "🇰🇷", "Costa de Marfil": "🇨🇮",
+    "Croacia": "🇭🇷", "Curazao": "🇨🇼", "Egipto": "🇪🇬", "Escocia": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+    "España": "🇪🇸", "Estados Unidos": "🇺🇸", "Francia": "🇫🇷", "Haití": "🇭🇹",
+    "Inglaterra": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "Irán": "🇮🇷", "Irak": "🇮🇶", "Italia": "🇮🇹", "Japón": "🇯🇵",
+    "Jordania": "🇯🇴", "Marruecos": "🇲🇦", "México": "🇲🇽", "Noruega": "🇳🇴",
+    "Nueva Zelanda": "🇳🇿", "Países Bajos": "🇳🇱", "Panamá": "🇵🇦",
+    "República Democrática del Congo": "🇨🇩", "Sudáfrica": "🇿🇦", "Suecia": "🇸🇪",
+    "Suiza": "🇨🇭", "Túnez": "🇹🇳", "Turquía": "🇹🇷", "Uzbekistán": "🇺🇿"
   };
   return flags[teamName] || "⚽️";
 }
@@ -91,6 +287,7 @@ function App() {
     champion: null,
     runner_up: null,
     top_scorer: null,
+    best_goalkeeper: null,
     surprise_team: null,
   });
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
@@ -101,7 +298,7 @@ function App() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState<boolean>(false);
   const [registerFullName, setRegisterFullName] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<"matches" | "bracket" | "standings" | "sidebets" | "leaderboard">("matches");
+  const [activeTab, setActiveTab] = useState<"matches" | "bracket" | "standings" | "sidebets" | "leaderboard" | "rules">("matches");
   const [matchSubTab, setMatchSubTab] = useState<"groups" | "knockouts">("groups");
   
   const [loading, setLoading] = useState<boolean>(() => {
@@ -114,6 +311,7 @@ function App() {
 
   // Form Drafts & Loaders
   const [editingScores, setEditingScores] = useState<Record<number, { home: string; away: string }>>({});
+  const [editingPenaltyWinners, setEditingPenaltyWinners] = useState<Record<number, boolean>>({});
   const [actionLoading, setActionLoading] = useState<Record<number, boolean>>({});
 
   const fetchDashboardData = async () => {
@@ -126,6 +324,7 @@ function App() {
           champion: null,
           runner_up: null,
           top_scorer: null,
+          best_goalkeeper: null,
           surprise_team: null,
         })),
       ]);
@@ -140,14 +339,19 @@ function App() {
       setPredictions(predsMap);
 
       const drafts: Record<number, { home: string; away: string }> = {};
+      const draftPenalties: Record<number, boolean> = {};
       matchesList.forEach((m) => {
         const p = predsMap[m.id];
         drafts[m.id] = {
           home: p ? String(p.home_score) : "",
           away: p ? String(p.away_score) : "",
         };
+        if (p && p.penalty_winner_home !== null && p.penalty_winner_home !== undefined) {
+          draftPenalties[m.id] = p.penalty_winner_home;
+        }
       });
       setEditingScores(drafts);
+      setEditingPenaltyWinners(draftPenalties);
     } catch (err) {
       console.error(err);
     } finally {
@@ -257,8 +461,12 @@ function App() {
     try {
       const homeScore = parseInt(draft.home, 10);
       const awayScore = parseInt(draft.away, 10);
+      let penaltyWinnerHome: boolean | null = null;
+      if (homeScore === awayScore) {
+        penaltyWinnerHome = editingPenaltyWinners[matchId] ?? true;
+      }
 
-      const newPred = await api.placePrediction(matchId, homeScore, awayScore);
+      const newPred = await api.placePrediction(matchId, homeScore, awayScore, penaltyWinnerHome);
       setPredictions((prev) => ({
         ...prev,
         [matchId]: newPred,
@@ -282,10 +490,15 @@ function App() {
       const pred = predictions[m.id];
       if (!draft || draft.home === "" || draft.away === "") return false;
 
-      return (
+      const scoreChanged =
         draft.home !== (pred ? String(pred.home_score) : "") ||
-        draft.away !== (pred ? String(pred.away_score) : "")
-      );
+        draft.away !== (pred ? String(pred.away_score) : "");
+
+      const penaltyWinnerChanged =
+        (editingPenaltyWinners[m.id] !== undefined ? editingPenaltyWinners[m.id] : null) !==
+        (pred && pred.penalty_winner_home !== undefined ? pred.penalty_winner_home : null);
+
+      return scoreChanged || penaltyWinnerChanged;
     }).map((m) => m.id);
 
     if (modifiedMatchIds.length === 0) {
@@ -300,7 +513,11 @@ function App() {
         const draft = editingScores[matchId];
         const homeScore = parseInt(draft.home, 10);
         const awayScore = parseInt(draft.away, 10);
-        await api.placePrediction(matchId, homeScore, awayScore);
+        let penaltyWinnerHome: boolean | null = null;
+        if (homeScore === awayScore) {
+          penaltyWinnerHome = editingPenaltyWinners[matchId] ?? true;
+        }
+        await api.placePrediction(matchId, homeScore, awayScore, penaltyWinnerHome);
         successCount++;
       } catch (err) {
         console.error(`Error saving match ${matchId}:`, err);
@@ -358,6 +575,45 @@ function App() {
     }
   };
 
+  const handleResetMyPredictions = async () => {
+    if (!window.confirm("¿Seguro que quieres borrar todos tus pronósticos? Esta acción no se puede deshacer.")) return;
+    setIsSimulatingAll(true);
+    try {
+      const data = await api.resetPredictions();
+      alert(data.message);
+      setEditingScores({});
+      setEditingPenaltyWinners({});
+      setTournamentPredictions({
+        champion: null,
+        runner_up: null,
+        top_scorer: null,
+        best_goalkeeper: null,
+        surprise_team: null,
+      });
+      await fetchDashboardData();
+    } catch (err: unknown) {
+      const error = err as Error;
+      alert(error.message || "Error al resetear tus pronósticos");
+    } finally {
+      setIsSimulatingAll(false);
+    }
+  };
+
+  const handleResetRealScores = async () => {
+    if (!window.confirm("¿Seguro que quieres resetear los resultados reales oficiales a un estado sin empezar? Esto restablecerá todos los puntos.")) return;
+    setIsSimulatingAll(true);
+    try {
+      const data = await api.resetRealScores();
+      alert(data.message);
+      await fetchDashboardData();
+    } catch (err: unknown) {
+      const error = err as Error;
+      alert(error.message || "Error al resetear resultados reales");
+    } finally {
+      setIsSimulatingAll(false);
+    }
+  };
+
   // Standings & Bracket Calculations
   const { standings, resolvedBracket } = useMemo(() => {
     // 1. Calculate Group Standings
@@ -384,9 +640,13 @@ function App() {
         let awayGoals: number | null = null;
 
         const pred = predictions[m.id];
+        const draft = editingScores[m.id];
         if (m.home_score !== null && m.away_score !== null) {
           homeGoals = m.home_score;
           awayGoals = m.away_score;
+        } else if (draft && draft.home !== "" && draft.away !== "") {
+          homeGoals = parseInt(draft.home, 10);
+          awayGoals = parseInt(draft.away, 10);
         } else if (pred) {
           homeGoals = pred.home_score;
           awayGoals = pred.away_score;
@@ -428,22 +688,44 @@ function App() {
       });
     });
 
+    // Check which groups are fully filled (all 6 matches have real score, prediction, or draft)
+    const resolvedGroups = new Set<string>();
+    const allGroups = new Set(matches.filter(m => m.stage === "group" && m.group).map(m => m.group as string));
+
+    allGroups.forEach((g) => {
+      const groupMatches = matches.filter(m => m.stage === "group" && m.group === g);
+      const isFilled = groupMatches.every((m) => {
+        const hasReal = m.home_score !== null && m.away_score !== null;
+        const hasPred = predictions[m.id] !== undefined;
+        const hasDraft = editingScores[m.id] && editingScores[m.id].home !== "" && editingScores[m.id].away !== "";
+        return hasReal || hasPred || hasDraft;
+      });
+      if (isFilled) {
+        resolvedGroups.add(g);
+      }
+    });
+
     // 2. Resolve Bracket
     const group1st: Record<string, string> = {};
     const group2nd: Record<string, string> = {};
     const group3rdList: { group: string; team: string; points: number; goalDiff: number; goalsFor: number }[] = [];
 
     Object.entries(sortedStandings).forEach(([g, list]) => {
-      if (list[0]) group1st[g] = list[0].team;
-      if (list[1]) group2nd[g] = list[1].team;
-      if (list[2]) {
-        group3rdList.push({
-          group: g,
-          team: list[2].team,
-          points: list[2].points,
-          goalDiff: list[2].goalDiff,
-          goalsFor: list[2].goalsFor,
-        });
+      if (resolvedGroups.has(g)) {
+        if (list[0]) group1st[g] = list[0].team;
+        if (list[1]) group2nd[g] = list[1].team;
+        if (list[2]) {
+          group3rdList.push({
+            group: g,
+            team: list[2].team,
+            points: list[2].points,
+            goalDiff: list[2].goalDiff,
+            goalsFor: list[2].goalsFor,
+          });
+        }
+      } else {
+        group1st[g] = `1º Grupo ${g}`;
+        group2nd[g] = `2º Grupo ${g}`;
       }
     });
 
@@ -454,7 +736,8 @@ function App() {
       return a.group.localeCompare(b.group);
     });
 
-    const qualified3rdGroups = new Set(sorted3rd.slice(0, 8).map((x) => x.group));
+    const allGroupsResolved = resolvedGroups.size === allGroups.size;
+    const qualified3rdGroups = allGroupsResolved ? new Set(sorted3rd.slice(0, 8).map((x) => x.group)) : new Set<string>();
     const resolved: Record<number, { home: string; away: string }> = {};
 
     matches.forEach((m) => {
@@ -473,7 +756,26 @@ function App() {
         return m.home_team;
       }
 
+      const draft = editingScores[matchId];
+      const draftPenaltyWinnerHome = editingPenaltyWinners[matchId];
       const pred = predictions[matchId];
+
+      if (draft && draft.home !== "" && draft.away !== "") {
+        const h = parseInt(draft.home, 10);
+        const a = parseInt(draft.away, 10);
+        if (h > a) return resolved[matchId]?.home || m.home_team;
+        if (h < a) return resolved[matchId]?.away || m.away_team;
+        
+        // It's a draw in draft, check draft penalty winner
+        if (draftPenaltyWinnerHome !== undefined) {
+          return draftPenaltyWinnerHome
+            ? (resolved[matchId]?.home || m.home_team)
+            : (resolved[matchId]?.away || m.away_team);
+        }
+        // Fallback to home team if not chosen yet
+        return resolved[matchId]?.home || m.home_team;
+      }
+
       if (pred) {
         if (pred.home_score > pred.away_score) {
           return resolved[matchId]?.home || m.home_team;
@@ -481,6 +783,13 @@ function App() {
         if (pred.home_score < pred.away_score) {
           return resolved[matchId]?.away || m.away_team;
         }
+        // Check stored penalty winner
+        if (pred.penalty_winner_home !== null && pred.penalty_winner_home !== undefined) {
+          return pred.penalty_winner_home
+            ? (resolved[matchId]?.home || m.home_team)
+            : (resolved[matchId]?.away || m.away_team);
+        }
+        return resolved[matchId]?.home || m.home_team;
       }
       return `Ganador Partido ${matchId}`;
     };
@@ -495,7 +804,26 @@ function App() {
         return m.away_team;
       }
 
+      const draft = editingScores[matchId];
+      const draftPenaltyWinnerHome = editingPenaltyWinners[matchId];
       const pred = predictions[matchId];
+
+      if (draft && draft.home !== "" && draft.away !== "") {
+        const h = parseInt(draft.home, 10);
+        const a = parseInt(draft.away, 10);
+        if (h > a) return resolved[matchId]?.away || m.away_team;
+        if (h < a) return resolved[matchId]?.home || m.home_team;
+        
+        // It's a draw in draft, check draft penalty winner
+        if (draftPenaltyWinnerHome !== undefined) {
+          return draftPenaltyWinnerHome
+            ? (resolved[matchId]?.away || m.away_team)
+            : (resolved[matchId]?.home || m.home_team);
+        }
+        // Fallback to away team if not chosen yet
+        return resolved[matchId]?.away || m.away_team;
+      }
+
       if (pred) {
         if (pred.home_score > pred.away_score) {
           return resolved[matchId]?.away || m.away_team;
@@ -503,22 +831,31 @@ function App() {
         if (pred.home_score < pred.away_score) {
           return resolved[matchId]?.home || m.home_team;
         }
+        // Check stored penalty winner
+        if (pred.penalty_winner_home !== null && pred.penalty_winner_home !== undefined) {
+          return pred.penalty_winner_home
+            ? (resolved[matchId]?.away || m.away_team)
+            : (resolved[matchId]?.home || m.home_team);
+        }
+        return resolved[matchId]?.away || m.away_team;
       }
       return `Perdedor Partido ${matchId}`;
     };
 
     const assigned3rdGroups = new Set<string>();
     const assign3rdTeam = (allowedGroups: string[]): string => {
-      for (const item of sorted3rd) {
-        if (allowedGroups.includes(item.group) && qualified3rdGroups.has(item.group) && !assigned3rdGroups.has(item.group)) {
-          assigned3rdGroups.add(item.group);
-          return item.team;
+      if (allGroupsResolved) {
+        for (const item of sorted3rd) {
+          if (allowedGroups.includes(item.group) && qualified3rdGroups.has(item.group) && !assigned3rdGroups.has(item.group)) {
+            assigned3rdGroups.add(item.group);
+            return item.team;
+          }
         }
-      }
-      for (const item of sorted3rd) {
-        if (allowedGroups.includes(item.group) && !assigned3rdGroups.has(item.group)) {
-          assigned3rdGroups.add(item.group);
-          return item.team;
+        for (const item of sorted3rd) {
+          if (allowedGroups.includes(item.group) && !assigned3rdGroups.has(item.group)) {
+            assigned3rdGroups.add(item.group);
+            return item.team;
+          }
         }
       }
       return `3º Grupo ${allowedGroups.join("/")}`;
@@ -567,7 +904,7 @@ function App() {
     resolved[104] = { home: getWinner(101), away: getWinner(102) };
 
     return { standings: sortedStandings, resolvedBracket: resolved };
-  }, [matches, predictions]);
+  }, [matches, predictions, editingScores, editingPenaltyWinners]);
 
   // Group Matches by Group name (A-L) for group stage
   const groupStageMatches = useMemo(() => {
@@ -611,6 +948,143 @@ function App() {
         items: data.items.sort((a, b) => a.id - b.id),
       }));
   }, [matches]);
+
+  // Render bracket match card helper
+  const renderBracketMatchCard = (m: Match) => {
+    const pred = predictions[m.id];
+    const draft = editingScores[m.id] || { home: "", away: "" };
+    const isSaving = actionLoading[m.id] || false;
+
+    const matchDateObj = new Date(m.date);
+    const isStarted = matchDateObj <= new Date();
+    const hasFinished = m.home_score !== null && m.away_score !== null;
+
+    const homeResolved = resolvedBracket[m.id]?.home || m.home_team;
+    const awayResolved = resolvedBracket[m.id]?.away || m.away_team;
+
+    const homeFlag = getFlagEmoji(homeResolved);
+    const awayFlag = getFlagEmoji(awayResolved);
+
+    const isPlaceholder = isTeamPlaceholder(homeResolved) || isTeamPlaceholder(awayResolved);
+    
+    const homeScoreInt = draft.home !== "" ? parseInt(draft.home, 10) : null;
+    const awayScoreInt = draft.away !== "" ? parseInt(draft.away, 10) : null;
+    const hasDraft = homeScoreInt !== null && awayScoreInt !== null;
+    const isTie = hasDraft && homeScoreInt === awayScoreInt;
+    const penaltyWinnerHome = editingPenaltyWinners[m.id] ?? true;
+
+    const predHome = pred ? pred.home_score : null;
+    const predAway = pred ? pred.away_score : null;
+    const predPenalty = pred ? pred.penalty_winner_home : null;
+
+    const isModified = hasDraft && (
+      homeScoreInt !== predHome ||
+      awayScoreInt !== predAway ||
+      (homeScoreInt === awayScoreInt && (penaltyWinnerHome !== (predPenalty ?? true)))
+    );
+
+    const handlePenaltyWinnerToggle = (homeWins: boolean) => {
+      if (isStarted || hasFinished || isPlaceholder) return;
+      setEditingPenaltyWinners((prev) => ({
+        ...prev,
+        [m.id]: homeWins,
+      }));
+    };
+
+    return (
+      <div 
+        key={m.id} 
+        className={`bracket-match-card ${isPlaceholder ? "bracket-placeholder" : ""}`}
+        style={{ 
+          opacity: isPlaceholder ? 0.65 : 1,
+          background: isPlaceholder ? "rgba(15, 23, 42, 0.3)" : "rgba(15, 23, 42, 0.65)",
+          borderColor: isPlaceholder ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.08)",
+        }}
+      >
+        <div className="bracket-match-header">
+          <span>Partido #{m.id}</span>
+          {m.stage !== "group" && (
+            <span className="bracket-match-stage-label">
+              {m.stage === "r32" ? "1/16" : m.stage === "r16" ? "1/8" : m.stage === "qf" ? "1/4" : m.stage === "sf" ? "Semis" : m.stage === "third" ? "3er" : "Final"}
+            </span>
+          )}
+        </div>
+
+        <div className="bracket-match-body" style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          {/* Home Team Row */}
+          <div 
+            onClick={() => isTie && handlePenaltyWinnerToggle(true)}
+            className={`bracket-team-row ${isTie && penaltyWinnerHome ? "penalty-winner" : ""}`}
+            style={{ cursor: isTie ? "pointer" : "default" }}
+          >
+            <span className="bracket-team-name">
+              <span className="bracket-flag">{homeFlag}</span>
+              <span className="name-text" style={{ fontWeight: isTie && penaltyWinnerHome ? "bold" : "normal" }}>{homeResolved}</span>
+              {isTie && penaltyWinnerHome && <span className="penalty-badge">🎯 Pen</span>}
+            </span>
+            {hasFinished ? (
+              <span className="bracket-score">{m.home_score}</span>
+            ) : (
+              <input
+                type="text"
+                className="bracket-score-input"
+                placeholder="-"
+                value={draft.home}
+                onChange={(e) => handleScoreChange(m.id, "home", e.target.value)}
+                disabled={isStarted || hasFinished || isPlaceholder}
+              />
+            )}
+          </div>
+
+          <div className="bracket-divider"></div>
+
+          {/* Away Team Row */}
+          <div 
+            onClick={() => isTie && handlePenaltyWinnerToggle(false)}
+            className={`bracket-team-row ${isTie && !penaltyWinnerHome ? "penalty-winner" : ""}`}
+            style={{ cursor: isTie ? "pointer" : "default" }}
+          >
+            <span className="bracket-team-name">
+              <span className="bracket-flag">{awayFlag}</span>
+              <span className="name-text" style={{ fontWeight: isTie && !penaltyWinnerHome ? "bold" : "normal" }}>{awayResolved}</span>
+              {isTie && !penaltyWinnerHome && <span className="penalty-badge">🎯 Pen</span>}
+            </span>
+            {hasFinished ? (
+              <span className="bracket-score">{m.away_score}</span>
+            ) : (
+              <input
+                type="text"
+                className="bracket-score-input"
+                placeholder="-"
+                value={draft.away}
+                onChange={(e) => handleScoreChange(m.id, "away", e.target.value)}
+                disabled={isStarted || hasFinished || isPlaceholder}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Footer with save button */}
+        {!isStarted && !hasFinished && !isPlaceholder && (
+          <div className="bracket-match-footer">
+            {isModified ? (
+              <button 
+                onClick={() => handleSavePrediction(m.id)} 
+                className="btn-save-bracket"
+                disabled={isSaving || draft.home === "" || draft.away === ""}
+              >
+                {isSaving ? "Guardando..." : "💾 Guardar"}
+              </button>
+            ) : pred ? (
+              <span className="bracket-saved-label">✓ Guardado</span>
+            ) : (
+              <span className="bracket-pending-label">Sin pronóstico</span>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // Render match card helper
   const renderMatchCard = (m: Match) => {
@@ -892,8 +1366,14 @@ function App() {
         <button onClick={handleSimulateMyPredictions} className="btn-save-pred" style={{ background: "rgba(139, 92, 246, 0.2)", color: "#c084fc", border: "1px solid rgba(139, 92, 246, 0.4)" }}>
           🎲 Simular mis Pronósticos
         </button>
+        <button onClick={handleResetMyPredictions} className="btn-save-pred" style={{ background: "rgba(139, 92, 246, 0.1)", color: "#e9d5ff", border: "1px solid rgba(139, 92, 246, 0.2)" }} disabled={isSimulatingAll}>
+          🧹 Resetear mis Pronósticos
+        </button>
         <button onClick={handleSimulateRealScores} className="btn-save-pred" style={{ background: "rgba(239, 68, 68, 0.2)", color: "#f87171", border: "1px solid rgba(239, 68, 68, 0.4)" }} disabled={isSimulatingAll}>
           {isSimulatingAll ? "Simulando..." : "🎲 Simular Resultados Reales (Admin)"}
+        </button>
+        <button onClick={handleResetRealScores} className="btn-save-pred" style={{ background: "rgba(239, 68, 68, 0.1)", color: "#fecaca", border: "1px solid rgba(239, 68, 68, 0.2)" }} disabled={isSimulatingAll}>
+          🧹 Resetear Resultados Reales (Admin)
         </button>
       </div>
 
@@ -928,6 +1408,12 @@ function App() {
           className={`tab-btn ${activeTab === "leaderboard" ? "active" : ""}`}
         >
           Clasificación General
+        </button>
+        <button
+          onClick={() => setActiveTab("rules")}
+          className={`tab-btn ${activeTab === "rules" ? "active" : ""}`}
+        >
+          Reglas y Puntuación
         </button>
       </nav>
 
@@ -986,45 +1472,63 @@ function App() {
           <div className="bracket-wrapper" style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
             <div className="glass-panel" style={{ padding: "1.5rem", borderRadius: "12px" }}>
               <h2 style={{ color: "var(--accent)", marginBottom: "0.5rem" }}>📊 Simulador del Cuadro de Fase Final</h2>
-              <p style={{ opacity: 0.8 }}>A continuación puedes ver cómo irían avanzando tus equipos de forma automática a medida que rellenas tus predicciones en la fase anterior:</p>
+              <p style={{ opacity: 0.8 }}>
+                Completa tus pronósticos directamente en las llaves. Los equipos clasificados avanzarán automáticamente a la siguiente ronda.
+                <br />
+                <span style={{ fontSize: "0.85rem", color: "var(--accent)" }}>
+                  💡 Para empates en fases eliminatorias, haz clic sobre el nombre del equipo para elegir al ganador de la tanda de penaltis.
+                </span>
+              </p>
             </div>
-            {knockoutMatches.map((stage) => (
-              <section key={stage.key} className="date-section" style={{ borderLeft: "4px solid var(--accent)", paddingLeft: "1rem" }}>
-                <h3 className="date-header" style={{ marginBottom: "1.5rem" }}>{stage.label}</h3>
-                <div className="matches-grid">
-                  {stage.items.map((m) => {
-                    const homeResolved = resolvedBracket[m.id]?.home || m.home_team;
-                    const awayResolved = resolvedBracket[m.id]?.away || m.away_team;
-                    const homeFlag = getFlagEmoji(homeResolved);
-                    const awayFlag = getFlagEmoji(awayResolved);
-                    
-                    const pred = predictions[m.id];
-                    const hasFinished = m.home_score !== null && m.away_score !== null;
 
-                    return (
-                      <div key={m.id} className="glass-panel match-card" style={{ background: "rgba(15, 23, 42, 0.65)", borderColor: "rgba(255,255,255,0.08)" }}>
-                        <div style={{ fontSize: "0.8rem", opacity: 0.6, marginBottom: "0.5rem" }}>Partido #{m.id}</div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontWeight: 500 }}><span style={{ marginRight: "0.5rem" }}>{homeFlag}</span>{homeResolved}</span>
-                            <span style={{ fontWeight: "bold" }}>
-                              {hasFinished ? m.home_score : (pred ? pred.home_score : "-")}
-                            </span>
-                          </div>
-                          <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", height: "1px" }}></div>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontWeight: 500 }}><span style={{ marginRight: "0.5rem" }}>{awayFlag}</span>{awayResolved}</span>
-                            <span style={{ fontWeight: "bold" }}>
-                              {hasFinished ? m.away_score : (pred ? pred.away_score : "-")}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
+            <div className="bracket-outer-container">
+              <div className="bracket-container">
+                {/* Column 1: Dieciseisavos (Round of 32) */}
+                <div className="bracket-column">
+                  <div className="bracket-column-header">Dieciseisavos (1/16)</div>
+                  {[74, 77, 73, 75, 83, 84, 81, 82, 76, 78, 79, 80, 86, 88, 85, 87].map((matchId) => {
+                    const m = matches.find((x) => x.id === matchId);
+                    return m ? renderBracketMatchCard(m) : null;
                   })}
                 </div>
-              </section>
-            ))}
+
+                {/* Column 2: Octavos (Round of 16) */}
+                <div className="bracket-column">
+                  <div className="bracket-column-header">Octavos (1/8)</div>
+                  {[89, 90, 93, 94, 91, 92, 95, 96].map((matchId) => {
+                    const m = matches.find((x) => x.id === matchId);
+                    return m ? renderBracketMatchCard(m) : null;
+                  })}
+                </div>
+
+                {/* Column 3: Cuartos (Quarterfinals) */}
+                <div className="bracket-column">
+                  <div className="bracket-column-header">Cuartos (1/4)</div>
+                  {[97, 98, 99, 100].map((matchId) => {
+                    const m = matches.find((x) => x.id === matchId);
+                    return m ? renderBracketMatchCard(m) : null;
+                  })}
+                </div>
+
+                {/* Column 4: Semifinales (Semifinals) */}
+                <div className="bracket-column">
+                  <div className="bracket-column-header">Semifinales</div>
+                  {[101, 102].map((matchId) => {
+                    const m = matches.find((x) => x.id === matchId);
+                    return m ? renderBracketMatchCard(m) : null;
+                  })}
+                </div>
+
+                {/* Column 5: Finales (Finals) */}
+                <div className="bracket-column">
+                  <div className="bracket-column-header">Finales</div>
+                  {[104, 103].map((matchId) => {
+                    const m = matches.find((x) => x.id === matchId);
+                    return m ? renderBracketMatchCard(m) : null;
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
         ) : activeTab === "standings" ? (
           // --- TAB 3: STANDINGS ---
@@ -1097,17 +1601,38 @@ function App() {
 
               <div className="input-group" style={{ marginBottom: "1.5rem" }}>
                 <label className="input-label">🔥 Máximo Goleador (Bota de Oro)</label>
-                <select
+                <input
+                  type="text"
+                  list="players-list"
                   className="premium-input"
-                  style={{ background: "rgba(15, 23, 42, 0.8)", cursor: "pointer" }}
+                  style={{ background: "rgba(15, 23, 42, 0.8)" }}
+                  placeholder="Busca o escribe un jugador..."
                   value={tournamentPredictions.top_scorer || ""}
                   onChange={(e) => setTournamentPredictions(prev => ({ ...prev, top_scorer: e.target.value || null }))}
-                >
-                  <option value="">-- Elige un jugador --</option>
+                />
+                <datalist id="players-list">
                   {TOP_PLAYERS.map(player => (
-                    <option key={player} value={player}>⚽ {player}</option>
+                    <option key={player} value={player} />
                   ))}
-                </select>
+                </datalist>
+              </div>
+
+              <div className="input-group" style={{ marginBottom: "1.5rem" }}>
+                <label className="input-label">🧤 Mejor Portero (Guante de Oro)</label>
+                <input
+                  type="text"
+                  list="goalkeepers-list"
+                  className="premium-input"
+                  style={{ background: "rgba(15, 23, 42, 0.8)" }}
+                  placeholder="Busca o escribe un portero..."
+                  value={tournamentPredictions.best_goalkeeper || ""}
+                  onChange={(e) => setTournamentPredictions(prev => ({ ...prev, best_goalkeeper: e.target.value || null }))}
+                />
+                <datalist id="goalkeepers-list">
+                  {TOP_GOALKEEPERS.map(gk => (
+                    <option key={gk} value={gk} />
+                  ))}
+                </datalist>
               </div>
 
               <div className="input-group" style={{ marginBottom: "2rem" }}>
@@ -1134,7 +1659,7 @@ function App() {
               </button>
             </div>
           </div>
-        ) : (
+        ) : activeTab === "leaderboard" ? (
           // --- TAB 5: LEADERBOARD ---
           <div className="leaderboard-container">
             {roast && (
@@ -1209,6 +1734,69 @@ function App() {
                   })}
                 </tbody>
               </table>
+            </div>
+          </div>
+        ) : (
+          // --- TAB 6: RULES ---
+          <div style={{ maxWidth: "800px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "2rem" }}>
+            <div className="glass-panel" style={{ padding: "2.5rem", borderRadius: "16px" }}>
+              <h2 style={{ color: "var(--accent)", marginBottom: "1.5rem", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                📜 Reglas de Puntuación
+              </h2>
+              <p style={{ opacity: 0.8, lineHeight: "1.6", marginBottom: "2rem" }}>
+                Para que la porra sea competitiva y justa, los puntos se calculan automáticamente de acuerdo con el acierto de tus pronósticos en cada partido y apuestas especiales del torneo.
+              </p>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                <div style={{ borderLeft: "4px solid var(--success)", paddingLeft: "1rem" }}>
+                  <h3 style={{ margin: "0 0 0.25rem 0", color: "var(--text-h)" }}>🌟 Acierto Exacto (+3 Puntos)</h3>
+                  <p style={{ margin: 0, opacity: 0.8, fontSize: "0.9rem" }}>
+                    Si aciertas el marcador exacto del partido (ejemplo: pronosticas 2-1 y el partido termina 2-1).
+                  </p>
+                </div>
+
+                <div style={{ borderLeft: "4px solid var(--warning)", paddingLeft: "1rem" }}>
+                  <h3 style={{ margin: "0 0 0.25rem 0", color: "var(--text-h)" }}>⚽ Acierto de Resultado (+1 Punto)</h3>
+                  <p style={{ margin: 0, opacity: 0.8, fontSize: "0.9rem" }}>
+                    Si aciertas qué equipo gana o si empatan, pero no el marcador exacto (ejemplo: pronosticas 3-0, el partido termina 1-0; o pronosticas 1-1, el partido termina 2-2).
+                  </p>
+                </div>
+
+                <div style={{ borderLeft: "4px solid var(--danger)", paddingLeft: "1rem" }}>
+                  <h3 style={{ margin: "0 0 0.25rem 0", color: "var(--text-h)" }}>❌ Pronóstico Fallado (0 Puntos)</h3>
+                  <p style={{ margin: 0, opacity: 0.8, fontSize: "0.9rem" }}>
+                    Si no aciertas ni el ganador ni el empate (ejemplo: pronosticas 1-0 y termina 1-2).
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ marginTop: "2.5rem", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "1.5rem" }}>
+                <h3 style={{ color: "var(--accent)", marginBottom: "1rem" }}>🏅 Puntos por Clasificación (Fases Eliminatorias)</h3>
+                <p style={{ opacity: 0.8, fontSize: "0.9rem", lineHeight: "1.6", margin: "0 0 1rem 0" }}>
+                  Además de los puntos por partido, sumas puntos por cada equipo que clasifiques correctamente a cada ronda del torneo (progresión de Fibonacci):
+                </p>
+                <ul style={{ paddingLeft: "1.25rem", margin: "0 0 1.5rem 0", fontSize: "0.9rem", opacity: 0.8, lineHeight: "1.8" }}>
+                  <li>🚪 <strong>Clasificar a Dieciseisavos (1/16):</strong> +1 punto por equipo acertado</li>
+                  <li>🏃 <strong>Clasificar a Octavos (1/8):</strong> +2 puntos por equipo acertado</li>
+                  <li>🏆 <strong>Clasificar a Cuartos (1/4):</strong> +3 puntos por equipo acertado</li>
+                  <li>🔥 <strong>Clasificar a Semifinales:</strong> +5 puntos por equipo acertado</li>
+                  <li>👑 <strong>Clasificar a la Final (Finalistas):</strong> +8 puntos por equipo acertado</li>
+                </ul>
+              </div>
+
+              <div style={{ marginTop: "1.5rem", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "1.5rem" }}>
+                <h3 style={{ color: "var(--accent)", marginBottom: "1rem" }}>🎯 Apuestas Especiales del Torneo</h3>
+                <p style={{ opacity: 0.8, fontSize: "0.9rem", lineHeight: "1.6", margin: "0 0 1rem 0" }}>
+                  Las apuestas especiales se resolverán al finalizar el torneo y otorgarán puntos adicionales:
+                </p>
+                <ul style={{ paddingLeft: "1.25rem", margin: 0, fontSize: "0.9rem", opacity: 0.8, lineHeight: "1.8" }}>
+                  <li>🏆 <strong>Campeón del Mundo:</strong> +10 puntos</li>
+                  <li>🥈 <strong>Subcampeón del Mundo:</strong> +5 puntos</li>
+                  <li>🔥 <strong>Máximo Goleador (Bota de Oro):</strong> +5 puntos</li>
+                  <li>🧤 <strong>Mejor Portero (Guante de Oro):</strong> +5 puntos</li>
+                  <li>⭐ <strong>Equipo Revelación:</strong> +5 puntos</li>
+                </ul>
+              </div>
             </div>
           </div>
         )}

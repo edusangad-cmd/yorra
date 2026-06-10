@@ -19,6 +19,7 @@ class TournamentPredictionResponse(BaseModel):
     champion: str | None = None
     runner_up: str | None = None
     top_scorer: str | None = None
+    best_goalkeeper: str | None = None
     surprise_team: str | None = None
 
 
@@ -26,6 +27,7 @@ class TournamentPredictionRequest(BaseModel):
     champion: str | None = None
     runner_up: str | None = None
     top_scorer: str | None = None
+    best_goalkeeper: str | None = None
     surprise_team: str | None = None
 
 
@@ -43,6 +45,7 @@ class PredictionRequest(BaseModel):
     match_id: int
     home_score: int
     away_score: int
+    penalty_winner_home: bool | None = None
 
 
 async def get_current_user(
@@ -171,6 +174,7 @@ async def get_predictions(
             "match_id": p.match_id,
             "home_score": p.home_score,
             "away_score": p.away_score,
+            "penalty_winner_home": p.penalty_winner_home,
             "points_earned": p.points_earned,
         }
         for p in predictions
@@ -208,12 +212,14 @@ async def place_prediction(
     if prediction:
         prediction.home_score = payload.home_score
         prediction.away_score = payload.away_score
+        prediction.penalty_winner_home = payload.penalty_winner_home
     else:
         prediction = Prediction(
             user_id=cast(int, current_user.id),
             match_id=payload.match_id,
             home_score=payload.home_score,
             away_score=payload.away_score,
+            penalty_winner_home=payload.penalty_winner_home,
             points_earned=0,
         )
         db.add(prediction)
@@ -226,6 +232,7 @@ async def place_prediction(
         "match_id": prediction.match_id,
         "home_score": prediction.home_score,
         "away_score": prediction.away_score,
+        "penalty_winner_home": prediction.penalty_winner_home,
         "points_earned": prediction.points_earned,
     }
 
@@ -278,6 +285,7 @@ async def get_tournament_predictions(
         champion=pred.champion,
         runner_up=pred.runner_up,
         top_scorer=pred.top_scorer,
+        best_goalkeeper=pred.best_goalkeeper,
         surprise_team=pred.surprise_team,
     )
 
@@ -298,6 +306,7 @@ async def save_tournament_predictions(
         pred.champion = payload.champion
         pred.runner_up = payload.runner_up
         pred.top_scorer = payload.top_scorer
+        pred.best_goalkeeper = payload.best_goalkeeper
         pred.surprise_team = payload.surprise_team
         pred.last_updated = now
     else:
@@ -306,6 +315,7 @@ async def save_tournament_predictions(
             champion=payload.champion,
             runner_up=payload.runner_up,
             top_scorer=payload.top_scorer,
+            best_goalkeeper=payload.best_goalkeeper,
             surprise_team=payload.surprise_team,
             last_updated=now,
         )
@@ -316,6 +326,7 @@ async def save_tournament_predictions(
         champion=pred.champion,
         runner_up=pred.runner_up,
         top_scorer=pred.top_scorer,
+        best_goalkeeper=pred.best_goalkeeper,
         surprise_team=pred.surprise_team,
     )
 
@@ -348,17 +359,47 @@ async def simulate_real_scores(
 
             predictions = pred_result.scalars().all()
             for prediction in predictions:
-                old_points = prediction.points_earned
                 new_points = calculate_points(
                     prediction.home_score, prediction.away_score, home_score, away_score
                 )
                 prediction.points_earned = new_points
-
-                user = await db.get(User, prediction.user_id)
-                if user:
-                    user.points = user.points - old_points + new_points
+                db.add(prediction)
         updated_count += 1
 
+    # Recalculate all user points consolidated
+    await MatchService.recalculate_all_users_points(db)
     await db.commit()
     return {"message": f"Simulated scores for {updated_count} matches.", "success": True}
+
+
+@router.post("/predictions/reset")
+async def reset_predictions(
+    db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, str]:
+    from sqlalchemy import delete
+    # Delete all predictions and tournament predictions for current_user
+    await db.execute(delete(Prediction).where(Prediction.user_id == current_user.id))  # type: ignore[arg-type]
+    await db.execute(delete(TournamentPrediction).where(TournamentPrediction.user_id == current_user.id))  # type: ignore[arg-type]
+    # Reset all users points
+    await MatchService.recalculate_all_users_points(db)
+    await db.commit()
+    return {"message": "Tus pronósticos han sido reseteados correctamente."}
+
+
+@router.post("/debug/reset-real-scores")
+async def reset_real_scores(
+    db: AsyncSession = Depends(get_session),
+) -> dict[str, str]:
+    # Fetch all matches
+    result = await db.execute(select(Match))
+    matches = result.scalars().all()
+    for m in matches:
+        m.home_score = None
+        m.away_score = None
+        m.status = "NS"
+    # Recalculate all users points
+    await MatchService.recalculate_all_users_points(db)
+    await db.commit()
+    return {"message": "Los resultados reales del torneo han sido reseteados."}
 

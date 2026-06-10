@@ -295,3 +295,207 @@ async def test_user_registration_and_case_insensitive_auth() -> None:
         assert res_auth_at.status_code == 200
         assert res_auth_at.json()["username"] == "pedro_perez"
 
+
+@pytest.mark.asyncio
+async def test_bracket_advancement_points() -> None:
+    # Pre-cleanup to avoid leftover IntegrityErrors
+    async with async_session_maker() as session:
+        pred_res = await session.execute(
+            select(Prediction).where(Prediction.user_id == 999)  # type: ignore[arg-type]
+        )
+        for pred in pred_res.scalars().all():
+            await session.delete(pred)
+        user = await session.get(User, 999)
+        if user:
+            await session.delete(user)
+        await session.commit()
+
+    # Setup matches in DB
+    async with async_session_maker() as session:
+        # Fetch all matches to save and clear their scores
+        all_matches_res = await session.execute(select(Match))
+        all_matches = list(all_matches_res.scalars().all())
+
+        assert len(all_matches) > 0, "No seeded matches exist"
+
+        # Save original states
+        from typing import Any
+        orig_states: dict[int, dict[str, Any]] = {}
+        for m in all_matches:
+            orig_states[m.id] = {
+                "home_team": m.home_team,
+                "away_team": m.away_team,
+                "home_score": m.home_score,
+                "away_score": m.away_score,
+                "status": m.status,
+                "group": m.group,
+                "stage": m.stage,
+            }
+
+        try:
+            # Clear all matches scores and status first
+            for m in all_matches:
+                m.home_score = None
+                m.away_score = None
+                m.status = "NS"
+
+            # Set up Group A matches (1, 2, 25, 28, 51, 52)
+            # Set up Group B matches (3, 8, 26, 27, 53, 54)
+            # Set up Match 73 (R32)
+            match_data: dict[int, dict[str, Any]] = {
+                1: {"home": "México", "away": "Sudáfrica", "h_score": 2, "a_score": 1, "group": "A", "stage": "group"},
+                2: {"home": "Corea del Sur", "away": "República Checa", "h_score": 1, "a_score": 0, "group": "A", "stage": "group"},
+                25: {"home": "México", "away": "Corea del Sur", "h_score": 2, "a_score": 0, "group": "A", "stage": "group"},
+                28: {"home": "República Checa", "away": "Sudáfrica", "h_score": 1, "a_score": 2, "group": "A", "stage": "group"},
+                51: {"home": "Sudáfrica", "away": "Corea del Sur", "h_score": 0, "a_score": 2, "group": "A", "stage": "group"},
+                52: {"home": "República Checa", "away": "México", "h_score": 1, "a_score": 3, "group": "A", "stage": "group"},
+                
+                3: {"home": "Canadá", "away": "Bosnia y Herzegovina", "h_score": 2, "a_score": 0, "group": "B", "stage": "group"},
+                8: {"home": "Catar", "away": "Suiza", "h_score": 1, "a_score": 2, "group": "B", "stage": "group"},
+                26: {"home": "Suiza", "away": "Bosnia y Herzegovina", "h_score": 1, "a_score": 0, "group": "B", "stage": "group"},
+                27: {"home": "Canadá", "away": "Catar", "h_score": 3, "a_score": 0, "group": "B", "stage": "group"},
+                53: {"home": "Bosnia y Herzegovina", "away": "Catar", "h_score": 1, "a_score": 2, "group": "B", "stage": "group"},
+                54: {"home": "Suiza", "away": "Canadá", "h_score": 1, "a_score": 0, "group": "B", "stage": "group"},
+                
+                73: {"home": "Corea del Sur", "away": "Canadá", "h_score": 2, "a_score": 1, "group": "R32", "stage": "r32"},
+            }
+
+            for mid, info in match_data.items():
+                db_m = next((x for x in all_matches if x.id == mid), None)
+                assert db_m is not None, f"Match {mid} not found"
+                db_m.home_team = info["home"]
+                db_m.away_team = info["away"]
+                db_m.home_score = info["h_score"]
+                db_m.away_score = info["a_score"]
+                db_m.status = "FT"
+                db_m.group = info["group"]
+                db_m.stage = info["stage"]
+
+            session.add_all(all_matches)
+            
+            user_obj = User(
+                id=999,
+                telegram_id="test_user_bracket",
+                full_name="Bracket Test User",
+                points=0
+            )
+            session.add(user_obj)
+            await session.commit()
+
+            # Add Predictions for the same scores
+            preds_to_add = []
+            for mid, info in match_data.items():
+                preds_to_add.append(
+                    Prediction(
+                        user_id=999,
+                        match_id=mid,
+                        home_score=info["h_score"],
+                        away_score=info["a_score"],
+                        points_earned=3
+                    )
+                )
+            session.add_all(preds_to_add)
+            await session.commit()
+
+            from app.services.match_service import MatchService
+            await MatchService.recalculate_all_users_points(session)
+            await session.commit()
+            
+            await session.refresh(user_obj)
+            assert user_obj.points == 45
+
+        finally:
+            # Clean up: delete user and predictions
+            pred_res2 = await session.execute(
+                select(Prediction).where(Prediction.user_id == 999)  # type: ignore[arg-type]
+            )
+            for pred in pred_res2.scalars().all():
+                await session.delete(pred)
+            user_to_del = await session.get(User, 999)
+            if user_to_del:
+                await session.delete(user_to_del)
+
+            # Restore original matches
+            for m in all_matches:
+                state = orig_states[m.id]
+                m.home_team = str(state["home_team"])
+                m.away_team = str(state["away_team"])
+                m.home_score = state["home_score"]
+                m.away_score = state["away_score"]
+                m.status = str(state["status"])
+                m.group = str(state["group"]) if state["group"] is not None else None
+                m.stage = str(state["stage"]) if state["stage"] is not None else None
+                session.add(m)
+
+            await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_reset_endpoints() -> None:
+    # 1. Setup user, match, prediction, and tournament prediction
+    async with async_session_maker() as session:
+        user = User(telegram_id=TEST_TELEGRAM_ID, username=TEST_USERNAME, full_name=TEST_FULL_NAME)
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+
+        match = Match(
+            id=TEST_MATCH_ID,
+            home_team="Spain",
+            away_team="Germany",
+            home_score=2,
+            away_score=1,
+            status="FT",
+            date=datetime.now(UTC).replace(tzinfo=None),
+        )
+        session.add(match)
+
+        pred = Prediction(
+            user_id=user.id,
+            match_id=TEST_MATCH_ID,
+            home_score=2,
+            away_score=1,
+            points_earned=3,
+        )
+        session.add(pred)
+
+        tp = TournamentPrediction(
+            user_id=user.id,
+            champion="España",
+            runner_up="Alemania",
+            top_scorer="Lamine Yamal",
+            best_goalkeeper="Unai Simón",
+            surprise_team="Marruecos",
+        )
+        session.add(tp)
+        await session.commit()
+
+    headers = {"X-Telegram-Id": TEST_TELEGRAM_ID}
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        # A. Reset predictions
+        res_reset_pred = await ac.post("/api/predictions/reset", headers=headers)
+        assert res_reset_pred.status_code == 200
+        assert "reseteados" in res_reset_pred.json()["message"]
+
+        # Verify deletion in DB
+        async with async_session_maker() as session:
+            preds = (await session.execute(select(Prediction).where(Prediction.user_id == user.id))).scalars().all()
+            assert len(preds) == 0
+
+            tps = (await session.execute(select(TournamentPrediction).where(TournamentPrediction.user_id == user.id))).scalars().all()
+            assert len(tps) == 0
+
+        # B. Reset real scores
+        res_reset_real = await ac.post("/api/debug/reset-real-scores")
+        assert res_reset_real.status_code == 200
+        assert "reseteados" in res_reset_real.json()["message"]
+
+        # Verify real scores reset in DB
+        async with async_session_maker() as session:
+            db_match = await session.get(Match, TEST_MATCH_ID)
+            assert db_match is not None
+            assert db_match.home_score is None
+            assert db_match.away_score is None
+            assert db_match.status == "NS"
+
+

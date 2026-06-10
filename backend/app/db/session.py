@@ -24,6 +24,8 @@ async def init_db() -> None:
         # Idempotent column additions for existing tables
         await conn.execute(text('ALTER TABLE match ADD COLUMN IF NOT EXISTS "group" VARCHAR;'))
         await conn.execute(text('ALTER TABLE match ADD COLUMN IF NOT EXISTS stage VARCHAR;'))
+        await conn.execute(text('ALTER TABLE prediction ADD COLUMN IF NOT EXISTS penalty_winner_home BOOLEAN;'))
+        await conn.execute(text('ALTER TABLE tournamentprediction ADD COLUMN IF NOT EXISTS best_goalkeeper VARCHAR;'))
 
 
 

@@ -654,3 +654,194 @@ body {
   50% { transform: scale(1.05); }
   100% { transform: scale(1); }
 }
+
+/* Bracket LLaves visual */
+.bracket-outer-container {
+  width: 100%;
+  overflow-x: auto;
+  padding: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.bracket-container {
+  display: flex;
+  gap: 2.5rem;
+  padding: 1.5rem;
+  min-width: max-content;
+}
+
+.bracket-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  min-width: 280px;
+  gap: 1.5rem;
+}
+
+.bracket-column-header {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-align: center;
+  padding: 0.5rem 0;
+  border-bottom: 2px solid var(--accent-border);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+}
+
+.bracket-match-card {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.25s ease;
+  width: 280px;
+}
+
+.bracket-match-card:hover:not(.bracket-placeholder) {
+  border-color: var(--accent-border);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+
+.bracket-match-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.6;
+}
+
+.bracket-match-stage-label {
+  background: var(--accent-bg);
+  color: var(--accent);
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.25rem;
+  font-weight: 700;
+}
+
+.bracket-team-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0.5rem;
+  border-radius: 0.375rem;
+  transition: background 0.2s ease;
+}
+
+.bracket-team-row.penalty-winner {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px dashed var(--success);
+}
+
+.bracket-team-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-h);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.bracket-flag {
+  font-size: 1.25rem;
+}
+
+.name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.penalty-badge {
+  font-size: 0.7rem;
+  background: var(--success);
+  color: #fff;
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.25rem;
+  font-weight: 700;
+  margin-left: 0.25rem;
+  flex-shrink: 0;
+}
+
+.bracket-score {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.bracket-score-input {
+  width: 32px;
+  height: 28px;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-h);
+  transition: all 0.2s ease;
+}
+
+.bracket-score-input:focus:not(:disabled) {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.bracket-score-input:disabled {
+  background: transparent;
+  border-color: transparent;
+  opacity: 0.6;
+}
+
+.bracket-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.05);
+  margin: 0.1rem 0;
+}
+
+.bracket-match-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  height: 24px;
+}
+
+.btn-save-bracket {
+  padding: 0.2rem 0.6rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-save-bracket:hover {
+  background: var(--accent-hover);
+}
+
+.bracket-saved-label {
+  font-size: 0.75rem;
+  color: var(--success);
+  font-weight: 600;
+}
+
+.bracket-pending-label {
+  font-size: 0.75rem;
+  opacity: 0.5;
+  font-style: italic;
+}
