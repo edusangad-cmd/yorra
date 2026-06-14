@@ -45,5 +45,5 @@ Artifact instead of fixing them inline.
 ## Communication
 
 - **Edu (Teacher/Professor):** Always respond to **Edu** (when he says "soy Edu") with extreme clarity and in non-technical terms. Avoid/explain development jargon, keeping him informed about what each action accomplishes in plain words.
-- **Edu's Pull Request Rule:** When working with Edu, do not merge code to `main` or automatically resolve tasks. Add a notice in the Pull Request description: *"Revisión y aprobación obligatoria por parte de Manu requerida antes de fusionar."* Additionally, pause execution at the end and ask Edu for confirmation in the chat that Manu has approved the changes.
+- **Pull Request Rule:** Do not merge code to `main` or automatically resolve tasks. Add a notice in the Pull Request description that review and approval from external players is required before merging.
 

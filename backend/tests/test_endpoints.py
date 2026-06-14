@@ -479,10 +479,10 @@ async def test_reset_endpoints() -> None:
 
         # Verify deletion in DB
         async with async_session_maker() as session:
-            preds = (await session.execute(select(Prediction).where(Prediction.user_id == user.id))).scalars().all()
+            preds = (await session.execute(select(Prediction).where(Prediction.user_id == user.id))).scalars().all()  # type: ignore[arg-type]
             assert len(preds) == 0
 
-            tps = (await session.execute(select(TournamentPrediction).where(TournamentPrediction.user_id == user.id))).scalars().all()
+            tps = (await session.execute(select(TournamentPrediction).where(TournamentPrediction.user_id == user.id))).scalars().all()  # type: ignore[arg-type]
             assert len(tps) == 0
 
         # B. Reset real scores

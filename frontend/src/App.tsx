@@ -98,7 +98,6 @@ function App() {
   const [isRegistering, setIsRegistering] = useState<boolean>(false);
   const [registerFullName, setRegisterFullName] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"matches" | "bracket" | "standings" | "sidebets" | "leaderboard" | "rules">("matches");
-  const [matchSubTab, setMatchSubTab] = useState<"groups" | "knockouts">("groups");
   
   const [loading, setLoading] = useState<boolean>(() => {
     const { telegram_id } = api.getCurrentUser();
@@ -729,31 +728,6 @@ function App() {
     })).sort((a, b) => a.groupName.localeCompare(b.groupName));
   }, [matches]);
 
-  // Group Knockout Matches by Stage
-  const knockoutMatches = useMemo(() => {
-    const stages: Record<string, { label: string; items: Match[] }> = {
-      r32: { label: "Dieciseisavos de Final (1/16)", items: [] },
-      r16: { label: "Octavos de Final (1/8)", items: [] },
-      qf: { label: "Cuartos de Final (1/4)", items: [] },
-      sf: { label: "Semifinales", items: [] },
-      third: { label: "Tercer Puesto", items: [] },
-      final: { label: "Gran Final", items: [] },
-    };
-
-    matches.forEach((m) => {
-      if (m.stage && stages[m.stage]) {
-        stages[m.stage].items.push(m);
-      }
-    });
-
-    return Object.entries(stages)
-      .filter(([, data]) => data.items.length > 0)
-      .map(([key, data]) => ({
-        key,
-        label: data.label,
-        items: data.items.sort((a, b) => a.id - b.id),
-      }));
-  }, [matches]);
 
   // Render bracket match card helper
   const renderBracketMatchCard = (m: Match) => {

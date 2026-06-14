@@ -78,7 +78,7 @@ See `.agents/rules/database.md` and the `/model-change` workflow.
 
 - **Never commit to `main`.** Work on feature/<initials>/<slug> branches; open a PR; a human reviews
   and merges.
-- **Edu's Pull Request Rules:** When working with **Edu**, the agent must never merge or auto-approve pull requests. Every PR must state in its description that approval from **Manu** is mandatory. Additionally, the agent must pause and ask for confirmation in the chat that Manu has approved the changes.
+- **Pull Request Rules:** The agent must never merge or auto-approve pull requests. Edu or other external players must review and approve the changes.
 - Confirm before destructive or outward-facing actions (dropping data, deleting files you didn't
   create, force-push, publishing).
 - **Secrets:** read `.env` for config, but never print/commit secret *values*. `.env` is git-ignored;
@@ -103,7 +103,7 @@ See `.agents/rules/database.md` and the `/model-change` workflow.
 Be concise and factual. Report what you actually did and verified; if a step was skipped or a test
 failed, say so plainly. Reference code as `path:line`.
 
-- **Parallel Team Members:** There are two people working in parallel on this project:
-  - **Manu:** A developer.
+- **Team Members:** 
   - **Edu:** A teacher/professor without development background.
+  - The rest of the players of the betting pool are external.
 - **Edu's Communication Rule:** Whenever the user states **"soy Edu"** (or **"I am Edu"**), the agent **must** explain what is being done with maximum clarity, using simple and understandable language, avoiding unexplained technical jargon.
