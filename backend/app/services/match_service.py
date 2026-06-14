@@ -365,6 +365,7 @@ class MatchService:
         # 1. Fetch all matches
         res = await db.execute(select(Match))
         matches = list(res.scalars().all())
+        matches_map = {m.id: m for m in matches}
 
         # Resolve the real tournament bracket
         real_scores = {m.id: (m.home_score, m.away_score) for m in matches}
@@ -424,7 +425,17 @@ class MatchService:
             preds = list(pred_res.scalars().all())
 
             # A. Match predictions points
-            match_points = sum(p.points_earned for p in preds)
+            match_points = 0
+            for p in preds:
+                m = matches_map.get(p.match_id)
+                if m and m.home_score is not None and m.away_score is not None:
+                    p.points_earned = calculate_points(
+                        p.home_score, p.away_score, m.home_score, m.away_score
+                    )
+                else:
+                    p.points_earned = 0
+                db.add(p)
+                match_points += p.points_earned
 
             # B. Bracket advancement points
             user_scores: dict[int, tuple[int | None, int | None]] = {p.match_id: (p.home_score, p.away_score) for p in preds}

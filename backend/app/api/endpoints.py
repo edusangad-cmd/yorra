@@ -103,6 +103,18 @@ async def register(
     }
 
 
+@router.get("/auth/me")
+async def get_me(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    await db.refresh(current_user)
+    return {
+        "id": current_user.id,
+        "telegram_id": current_user.telegram_id,
+        "full_name": current_user.full_name,
+        "username": current_user.username,
+        "points": current_user.points,
+    }
+
+
 @router.post("/auth")
 async def authenticate(
     payload: AuthRequest, db: AsyncSession = Depends(get_session)
@@ -381,6 +393,8 @@ async def reset_predictions(
     # Delete all predictions and tournament predictions for current_user
     await db.execute(delete(Prediction).where(Prediction.user_id == current_user.id))  # type: ignore[arg-type]
     await db.execute(delete(TournamentPrediction).where(TournamentPrediction.user_id == current_user.id))  # type: ignore[arg-type]
+    await db.commit()
+
     # Reset all users points
     await MatchService.recalculate_all_users_points(db)
     await db.commit()
