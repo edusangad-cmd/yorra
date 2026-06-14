@@ -91,9 +91,21 @@ async def test_auth_flow() -> None:
         response_with_id = await ac.post("/api/auth", json={"username_or_id": TEST_TELEGRAM_ID})
         assert response_with_id.status_code == 200
 
-        # Test non-existent user
-        response_fail = await ac.post("/api/auth", json={"username_or_id": "non_existent_username"})
-        assert response_fail.status_code == 404
+        # Test non-existent user (should auto-register now)
+        response_success = await ac.post("/api/auth", json={"username_or_id": "temp_user_auth"})
+        assert response_success.status_code == 200
+        data = response_success.json()
+        assert data["username"] == "temp_user_auth"
+        assert data["full_name"] == "temp_user_auth"
+
+        # Clean up temp_user_auth
+        async with async_session_maker() as session:
+            user_res = await session.execute(
+                select(User).where(User.telegram_id == "temp_user_auth")  # type: ignore[arg-type]
+            )
+            for u in user_res.scalars().all():
+                await session.delete(u)
+            await session.commit()
 
 
 @pytest.mark.asyncio

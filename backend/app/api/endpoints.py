@@ -57,7 +57,7 @@ async def get_current_user(
     if not user:
         raise HTTPException(
             status_code=401,
-            detail="Usuario no registrado en Telegram. Ejecuta /start en el bot primero.",
+            detail="Usuario no registrado. Inicia sesión en la página de inicio.",
         )
     return user
 
@@ -131,10 +131,22 @@ async def authenticate(
         user = result.scalars().first()
 
     if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="Usuario no encontrado. Regístrate en la pantalla de inicio o usa el bot de Telegram.",
+        # Auto-register if not found
+        display_name = payload.username_or_id.strip().replace("@", "")
+        if not display_name:
+            raise HTTPException(
+                status_code=400,
+                detail="El nombre de usuario no puede estar vacío.",
+            )
+        user = User(
+            telegram_id=search_str,
+            username=search_str,
+            full_name=display_name,
+            points=0
         )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
 
     return {
         "id": user.id,
