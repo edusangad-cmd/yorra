@@ -1771,10 +1771,50 @@ function App() {
                       <tr key={u.id} className={`${isSelf ? "current-user" : ""} clickable-row`} onClick={() => openUserPredictionsModal(u)}>
                         <td className="rank-cell">#{index + 1}</td>
                         <td>
-                          {u.full_name}
-                          {u.username && (
-                            <span className="username-tag">@{u.username}</span>
-                          )}
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span>
+                              {u.full_name}
+                              {u.username && (
+                                <span className="username-tag">@{u.username}</span>
+                              )}
+                            </span>
+                            {user?.telegram_id?.toLowerCase() === "educonsul" && !isSelf && (
+                              <button
+                                style={{
+                                  padding: "0.2rem 0.5rem",
+                                  fontSize: "0.75rem",
+                                  background: "rgba(220, 38, 38, 0.15)",
+                                  border: "1px solid rgba(220, 38, 38, 0.3)",
+                                  color: "#f87171",
+                                  borderRadius: "6px",
+                                  cursor: "pointer",
+                                  margin: 0,
+                                  transition: "all 0.2s ease",
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = "rgba(220, 38, 38, 0.3)";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = "rgba(220, 38, 38, 0.15)";
+                                }}
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (window.confirm(`¿Seguro que quieres eliminar al usuario "${u.full_name}" y todos sus pronósticos? Esta acción no se puede deshacer.`)) {
+                                    try {
+                                      await api.deleteUser(u.id);
+                                      await fetchLeaderboardData();
+                                      alert("Usuario eliminado correctamente.");
+                                    } catch (err: unknown) {
+                                      const error = err as Error;
+                                      alert(error.message || "Error al eliminar usuario.");
+                                    }
+                                  }
+                                }}
+                              >
+                                ❌
+                              </button>
+                            )}
+                          </div>
                         </td>
                         <td className="points-cell">{u.points} pts</td>
                       </tr>

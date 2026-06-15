@@ -480,3 +480,44 @@ async def get_user_predictions(
         } if tour_pred else None,
     }
 
+
+@router.delete("/users/{user_id}")
+async def delete_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, str]:
+    # Check authorization: only @educonsul (telegram_id == "educonsul") is allowed to delete
+    if current_user.telegram_id.lower() != "educonsul":
+        raise HTTPException(
+            status_code=403,
+            detail="No tienes permisos para realizar esta acción."
+        )
+
+    # Do not allow educonsul to delete themselves (safety check)
+    if user_id == current_user.id:
+        raise HTTPException(
+            status_code=400,
+            detail="No puedes eliminarte a ti mismo."
+        )
+
+    # Check if target user exists
+    target_user = await db.get(User, user_id)
+    if not target_user:
+        raise HTTPException(
+            status_code=404,
+            detail="Usuario no encontrado."
+        )
+
+    from sqlalchemy import delete
+    # Delete predictions
+    await db.execute(delete(Prediction).where(Prediction.user_id == user_id))  # type: ignore[arg-type]
+    # Delete tournament predictions
+    await db.execute(delete(TournamentPrediction).where(TournamentPrediction.user_id == user_id))  # type: ignore[arg-type]
+    # Delete user
+    await db.delete(target_user)
+    await db.commit()
+
+    return {"message": f"Usuario {target_user.full_name} eliminado correctamente."}
+
+
