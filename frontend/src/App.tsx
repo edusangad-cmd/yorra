@@ -253,9 +253,10 @@ function App() {
       setIsGeneratingSummary(true);
       await api.generateDailySummary(summaryDateInput);
       await fetchDailySummariesData();
-    } catch (err: any) {
-      console.error(err);
-      alert(err.message || "Error al generar el resumen diario.");
+    } catch (err: unknown) {
+      const error = err as Error;
+      console.error(error);
+      alert(error.message || "Error al generar el resumen diario.");
     } finally {
       setIsGeneratingSummary(false);
     }
