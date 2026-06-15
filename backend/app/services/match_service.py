@@ -333,6 +333,7 @@ class MatchService:
                 db_match.home_score = home_score
                 db_match.away_score = away_score
                 db_match.status = status
+                db_match.date = match_date
                 db_match.group = fixture_data.get("group")
                 db_match.stage = fixture_data.get("stage")
                 db_match.last_updated = now
