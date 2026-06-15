@@ -513,11 +513,11 @@ async def test_reset_endpoints() -> None:
 
 @pytest.mark.asyncio
 async def test_third_place_combinations_resolution() -> None:
-    from app.services.match_service import resolve_bracket_teams
     from app.models.models import Match
+    from app.services.match_service import resolve_bracket_teams
 
     matches = []
-    scores_map = {}
+    scores_map: dict[int, tuple[int | None, int | None]] = {}
     
     # 1. Generate 72 group stage matches (6 per group for groups A-L)
     match_id = 1
@@ -536,29 +536,63 @@ async def test_third_place_combinations_resolution() -> None:
         is_best_3rd = g in ["E", "F", "G", "H", "I", "J", "K", "L"]
         
         for idx, (home, away) in enumerate(group_match_pairs):
-            m = Match(id=match_id, home_team=home, away_team=away, stage="group", group=g)
+            m = Match(
+                id=match_id,
+                home_team=home,
+                away_team=away,
+                stage="group",
+                group=g,
+                status="NS",
+                date=datetime.utcnow(),
+            )
             matches.append(m)
             
             # Assign scores to determine standings
-            if idx == 0:  # 0 vs 1
-                score = (1, 0)
-            elif idx == 1:  # 2 vs 3
-                score = (1, 0) if is_best_3rd else (0, 1)
-            elif idx == 2:  # 0 vs 2
-                score = (0, 1) if is_best_3rd else (1, 0)
-            elif idx == 3:  # 1 vs 3
-                score = (1, 0)
-            elif idx == 4:  # 0 vs 3
-                score = (1, 0)
-            else:  # 1 vs 2
-                score = (0, 1) if is_best_3rd else (1, 0)
+            score: tuple[int | None, int | None]
+            if is_best_3rd:
+                # 3rd place gets 4 points (E2)
+                if idx == 0:    # 0 vs 1 (E1 vs E2) -> (2, 1)
+                    score = (2, 1)
+                elif idx == 1:  # 2 vs 3 (E3 vs E4) -> (3, 0)
+                    score = (3, 0)
+                elif idx == 2:  # 0 vs 2 (E1 vs E3) -> (1, 1)
+                    score = (1, 1)
+                elif idx == 3:  # 1 vs 3 (E2 vs E4) -> (2, 0)
+                    score = (2, 0)
+                elif idx == 4:  # 0 vs 3 (E1 vs E4) -> (3, 0)
+                    score = (3, 0)
+                else:           # 1 vs 2 (E2 vs E3) -> (1, 1)
+                    score = (1, 1)
+            else:
+                # 3rd place gets 1 point
+                if idx == 0:    # (2, 0)
+                    score = (2, 0)
+                elif idx == 1:  # (3, 0)
+                    score = (3, 0)
+                elif idx == 2:  # (4, 0)
+                    score = (4, 0)
+                elif idx == 3:  # (0, 0)
+                    score = (0, 0)
+                elif idx == 4:  # (5, 0)
+                    score = (5, 0)
+                else:           # (0, 4)
+                    score = (0, 4)
                 
             scores_map[match_id] = score
             match_id += 1
 
     # 2. Add dummy knockout matches (Match 73 to 104)
     for kid in range(73, 105):
-        matches.append(Match(id=kid, home_team=f"T1_{kid}", away_team=f"T2_{kid}", stage="knockout"))
+        matches.append(
+            Match(
+                id=kid,
+                home_team=f"T1_{kid}",
+                away_team=f"T2_{kid}",
+                stage="knockout",
+                status="NS",
+                date=datetime.utcnow(),
+            )
+        )
 
     # 3. Call resolve_bracket_teams
     resolved = resolve_bracket_teams(matches, scores_map, {})
@@ -577,14 +611,13 @@ async def test_third_place_combinations_resolution() -> None:
     assert resolved[81]["away"] == "I2"
 
     # Winner Group E (E1 or E3/E2 depending on standing, let's just make sure it's resolved and matches combination)
-    # E3 won all three games -> 9 pts. E1 won vs E2, E4 -> 6 pts. E2 won vs E4 -> 3 pts. E4 lost all -> 0 pts.
-    # So: 1st in E is E3.
-    assert resolved[74]["home"] == "E3"
-    # Winner Group E (E3) vs 3rd Group F (F2) -> Match 74
+    # Under new standings, E1 is 1st in E.
+    assert resolved[74]["home"] == "E1"
+    # Winner Group E (E1) vs 3rd Group F (F2) -> Match 74
     assert resolved[74]["away"] == "F2"
 
-    # Winner Group I (I3) vs 3rd Group G (G2) -> Match 77
-    assert resolved[77]["home"] == "I3"
+    # Winner Group I (I1) vs 3rd Group G (G2) -> Match 77
+    assert resolved[77]["home"] == "I1"
     assert resolved[77]["away"] == "G2"
 
 
