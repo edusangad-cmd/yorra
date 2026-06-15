@@ -907,7 +907,7 @@ function App() {
               <span className="name-text" style={{ fontWeight: isTie && penaltyWinnerHome ? "bold" : "normal" }}>{homeResolved}</span>
               {isTie && penaltyWinnerHome && <span className="penalty-badge">🎯 Pen</span>}
             </span>
-            {hasFinished ? (
+            {m.home_score !== null && m.away_score !== null ? (
               <span className="bracket-score">{m.home_score}</span>
             ) : (
               <input
@@ -934,7 +934,7 @@ function App() {
               <span className="name-text" style={{ fontWeight: isTie && !penaltyWinnerHome ? "bold" : "normal" }}>{awayResolved}</span>
               {isTie && !penaltyWinnerHome && <span className="penalty-badge">🎯 Pen</span>}
             </span>
-            {hasFinished ? (
+            {m.home_score !== null && m.away_score !== null ? (
               <span className="bracket-score">{m.away_score}</span>
             ) : (
               <input
@@ -1030,7 +1030,7 @@ function App() {
           </div>
 
           <div className="score-center">
-            {hasFinished ? (
+            {m.home_score !== null && m.away_score !== null ? (
               <div className="real-score">
                 {m.home_score} - {m.away_score}
               </div>
