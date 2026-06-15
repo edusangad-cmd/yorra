@@ -173,7 +173,7 @@ async def get_matches(db: AsyncSession = Depends(get_session)) -> list[dict[str,
             "home_score": m.home_score,
             "away_score": m.away_score,
             "status": m.status,
-            "date": m.date.isoformat(),
+            "date": m.date.isoformat() + "Z",
             "group": m.group,
             "stage": m.stage,
         }
@@ -428,4 +428,55 @@ async def reset_real_scores(
     await MatchService.recalculate_all_users_points(db)
     await db.commit()
     return {"message": "Los resultados reales del torneo han sido reseteados."}
+
+
+@router.get("/users/{user_id}/predictions")
+async def get_user_predictions(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    # 1. Fetch user
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # 2. Fetch predictions
+    pred_res = await db.execute(
+        select(Prediction).where(Prediction.user_id == user_id)  # type: ignore[arg-type]
+    )
+    predictions = pred_res.scalars().all()
+
+    # 3. Fetch tournament prediction
+    tour_pred_res = await db.execute(
+        select(TournamentPrediction).where(TournamentPrediction.user_id == user_id)  # type: ignore[arg-type]
+    )
+    tour_pred = tour_pred_res.scalars().first()
+
+    return {
+        "user": {
+            "id": user.id,
+            "full_name": user.full_name,
+            "username": user.username,
+            "points": user.points,
+        },
+        "predictions": [
+            {
+                "id": p.id,
+                "match_id": p.match_id,
+                "home_score": p.home_score,
+                "away_score": p.away_score,
+                "penalty_winner_home": p.penalty_winner_home,
+                "points_earned": p.points_earned,
+            }
+            for p in predictions
+        ],
+        "tournament_prediction": {
+            "champion": tour_pred.champion,
+            "runner_up": tour_pred.runner_up,
+            "top_scorer": tour_pred.top_scorer,
+            "best_goalkeeper": tour_pred.best_goalkeeper,
+            "surprise_team": tour_pred.surprise_team,
+        } if tour_pred else None,
+    }
 
