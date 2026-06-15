@@ -1,7 +1,27 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 import httpx
+
+
+def get_stadium_utc_offset(stadium_id_str: str | None) -> int:
+    if not stadium_id_str:
+        return -4  # Default to Eastern (EDT)
+    try:
+        s_id = int(stadium_id_str)
+    except ValueError:
+        return -4
+
+    if s_id in [1, 2, 3]:  # Mexico (Standard Central Time, no DST, UTC-6)
+        return -6
+    elif s_id in [4, 5, 6]:  # USA Central (CDT, UTC-5)
+        return -5
+    elif s_id in [7, 8, 9, 10, 11, 12]:  # USA/Canada Eastern (EDT, UTC-4)
+        return -4
+    elif s_id in [13, 14, 15, 16]:  # USA/Canada Western (PDT, UTC-7)
+        return -7
+    return -4
+
 
 
 class APISportsClient:
@@ -116,7 +136,10 @@ class APISportsClient:
                         try:
                             # format: MM/DD/YYYY HH:MM
                             parsed = datetime.strptime(local_date, "%m/%d/%Y %H:%M")
-                            date_str = parsed.isoformat() + "Z"
+                            offset = get_stadium_utc_offset(g.get("stadium_id"))
+                            # Convert local time to UTC by subtracting the offset
+                            utc_datetime = parsed - timedelta(hours=offset)
+                            date_str = utc_datetime.isoformat() + "Z"
                         except Exception:
                             date_str = "2026-06-11T18:00:00.000Z"
                     else:
