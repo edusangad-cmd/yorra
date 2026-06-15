@@ -120,7 +120,7 @@ class AISummaryService:
             "   - 'países zes' o 'países meninos': Países Bajos.\n"
             "   - 'moros': cualquier equipo que sale a poner el cerrojazo.\n"
             "4. Escribe en español de España de manera natural, cercana y divertida."
-            "5. NO USES CARACTERES ESPECIALES PARA DIFERENCIAR LOS INPUTS COMO RESULTADOS O GLOSARIO DEL LENGUAJE NATURAL USADO POR TI: es decir, que no se vean diferencias estilísticas sino un texto corrido\n"
+            "5. NO USES ASTERISCOS PARA DIFERENCIAR O DESTACAR NADA: es decir, que no se vean diferencias estilísticas dentro de la crónica sino un texto corrido y natural\n"
         )
 
         content = await AISummaryService._call_gemini_api(prompt, matches, rankings_today)
