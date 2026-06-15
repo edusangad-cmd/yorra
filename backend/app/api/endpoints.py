@@ -57,7 +57,7 @@ async def get_current_user(
     if not user:
         raise HTTPException(
             status_code=401,
-            detail="Usuario no registrado en Telegram. Ejecuta /start en el bot primero.",
+            detail="Usuario no registrado. Inicia sesión en la página de inicio.",
         )
     return user
 
@@ -103,6 +103,18 @@ async def register(
     }
 
 
+@router.get("/auth/me")
+async def get_me(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    await db.refresh(current_user)
+    return {
+        "id": current_user.id,
+        "telegram_id": current_user.telegram_id,
+        "full_name": current_user.full_name,
+        "username": current_user.username,
+        "points": current_user.points,
+    }
+
+
 @router.post("/auth")
 async def authenticate(
     payload: AuthRequest, db: AsyncSession = Depends(get_session)
@@ -119,10 +131,22 @@ async def authenticate(
         user = result.scalars().first()
 
     if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="Usuario no encontrado. Regístrate en la pantalla de inicio o usa el bot de Telegram.",
+        # Auto-register if not found
+        display_name = payload.username_or_id.strip().replace("@", "")
+        if not display_name:
+            raise HTTPException(
+                status_code=400,
+                detail="El nombre de usuario no puede estar vacío.",
+            )
+        user = User(
+            telegram_id=search_str,
+            username=search_str,
+            full_name=display_name,
+            points=0
         )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
 
     return {
         "id": user.id,
@@ -381,6 +405,8 @@ async def reset_predictions(
     # Delete all predictions and tournament predictions for current_user
     await db.execute(delete(Prediction).where(Prediction.user_id == current_user.id))  # type: ignore[arg-type]
     await db.execute(delete(TournamentPrediction).where(TournamentPrediction.user_id == current_user.id))  # type: ignore[arg-type]
+    await db.commit()
+
     # Reset all users points
     await MatchService.recalculate_all_users_points(db)
     await db.commit()

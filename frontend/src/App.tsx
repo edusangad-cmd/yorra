@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { api } from "./services/api";
 import type { Match, Prediction, User, LeaderboardUser, TournamentPrediction } from "./services/api";
+import { ALL_FORWARDS, ALL_GOALKEEPERS } from "./data/players";
+import { THIRD_PLACE_COMBINATIONS } from "./services/thirdPlaceCombinations";
 
 const ALL_TEAMS_ES = [
   "Alemania", "Arabia Saudí", "Argelia", "Argentina", "Australia", "Austria", "Bélgica", 
@@ -12,209 +14,7 @@ const ALL_TEAMS_ES = [
   "Senegal", "Sudáfrica", "Suecia", "Suiza", "Túnez", "Turquía", "Uruguay", "Uzbekistán"
 ].sort();
 
-const TOP_PLAYERS = [
-  "Jamal Musiala (Alemania)",
-  "Florian Wirtz (Alemania)",
-  "Kai Havertz (Alemania)",
-  "Leroy Sané (Alemania)",
-  "Niclas Füllkrug (Alemania)",
-  "Salem Al-Dawsari (Arabia Saudí)",
-  "Firas Al-Buraikan (Arabia Saudí)",
-  "Riyad Mahrez (Argelia)",
-  "Amine Gouiri (Argelia)",
-  "Baghdad Bounedjah (Argelia)",
-  "Lionel Messi (Argentina)",
-  "Lautaro Martínez (Argentina)",
-  "Julián Álvarez (Argentina)",
-  "Enzo Fernández (Argentina)",
-  "Alexis Mac Allister (Argentina)",
-  "Mitchell Duke (Australia)",
-  "Craig Goodwin (Australia)",
-  "Nestory Irankunda (Australia)",
-  "Marcel Sabitzer (Austria)",
-  "Christoph Baumgartner (Austria)",
-  "Michael Gregoritsch (Austria)",
-  "Kevin De Bruyne (Bélgica)",
-  "Romelu Lukaku (Bélgica)",
-  "Jérémy Doku (Bélgica)",
-  "Leandro Trossard (Bélgica)",
-  "Edin Džeko (Bosnia y Herzegovina)",
-  "Ermedin Demirović (Bosnia y Herzegovina)",
-  "Vinícius Jr (Brasil)",
-  "Rodrygo Goes (Brasil)",
-  "Neymar Jr (Brasil)",
-  "Raphinha (Brasil)",
-  "Endrick (Brasil)",
-  "Ryan Mendes (Cabo Verde)",
-  "Garry Rodrigues (Cabo Verde)",
-  "Alphonso Davies (Canadá)",
-  "Jonathan David (Canadá)",
-  "Cyle Larin (Canadá)",
-  "Akram Afif (Catar)",
-  "Almoez Ali (Catar)",
-  "Luis Díaz (Colombia)",
-  "James Rodríguez (Colombia)",
-  "Jhon Durán (Colombia)",
-  "Luis Sinisterra (Colombia)",
-  "Son Heung-min (Corea del Sur)",
-  "Hwang Hee-chan (Corea del Sur)",
-  "Lee Kang-in (Corea del Sur)",
-  "Sébastien Haller (Costa de Marfil)",
-  "Simon Adingra (Costa de Marfil)",
-  "Franck Kessié (Costa de Marfil)",
-  "Luka Modrić (Croacia)",
-  "Andrej Kramarić (Croacia)",
-  "Mateo Kovačić (Croacia)",
-  "Juninho Bacuna (Curazao)",
-  "Kenji Gorré (Curazao)",
-  "Enner Valencia (Ecuador)",
-  "Moisés Caicedo (Ecuador)",
-  "Kendry Páez (Ecuador)",
-  "Scott McTominay (Escocia)",
-  "John McGinn (Escocia)",
-  "Lamine Yamal (España)",
-  "Nico Williams (España)",
-  "Álvaro Morata (España)",
-  "Dani Olmo (España)",
-  "Pedri González (España)",
-  "Rodri Hernández (España)",
-  "Christian Pulisic (Estados Unidos)",
-  "Folarin Balogun (Estados Unidos)",
-  "Timothy Weah (Estados Unidos)",
-  "Weston McKennie (Estados Unidos)",
-  "Kylian Mbappé (Francia)",
-  "Antoine Griezmann (Francia)",
-  "Ousmane Dembélé (Francia)",
-  "Marcus Thuram (Francia)",
-  "Olivier Giroud (Francia)",
-  "Mohammed Kudus (Ghana)",
-  "Inaki Williams (Ghana)",
-  "Jordan Ayew (Ghana)",
-  "Duckens Nazon (Haití)",
-  "Frantzdy Pierrot (Haití)",
-  "Harry Kane (Inglaterra)",
-  "Jude Bellingham (Inglaterra)",
-  "Bukayo Saka (Inglaterra)",
-  "Phil Foden (Inglaterra)",
-  "Cole Palmer (Inglaterra)",
-  "Aymen Hussein (Irak)",
-  "Mohanad Ali (Irak)",
-  "Mehdi Taremi (Irán)",
-  "Sardar Azmoun (Irán)",
-  "Federico Chiesa (Italia)",
-  "Nicolò Barella (Italia)",
-  "Mateo Retegui (Italia)",
-  "Kaoru Mitoma (Japón)",
-  "Takefusa Kubo (Japón)",
-  "Ayase Ueda (Japón)",
-  "Takumi Minamino (Japón)",
-  "Mousa Al-Tamari (Jordania)",
-  "Yazan Al-Naimat (Jordania)",
-  "Youssef En-Nesyri (Marruecos)",
-  "Hakim Ziyech (Marruecos)",
-  "Achraf Hakimi (Marruecos)",
-  "Brahim Díaz (Marruecos)",
-  "Santiago Giménez (México)",
-  "Hirving Lozano (México)",
-  "Edson Álvarez (México)",
-  "Erling Haaland (Noruega)",
-  "Martin Ødegaard (Noruega)",
-  "Alexander Sørloth (Noruega)",
-  "Chris Wood (Nueva Zelanda)",
-  "Ben Waine (Nueva Zelanda)",
-  "Cody Gakpo (Países Bajos)",
-  "Memphis Depay (Países Bajos)",
-  "Xavi Simons (Países Bajos)",
-  "José Fajardo (Panamá)",
-  "Ismael Díaz (Panamá)",
-  "Julio Enciso (Paraguay)",
-  "Miguel Almirón (Paraguay)",
-  "Antonio Sanabria (Paraguay)",
-  "Cristiano Ronaldo (Portugal)",
-  "Rafael Leão (Portugal)",
-  "Bruno Fernandes (Portugal)",
-  "Bernardo Silva (Portugal)",
-  "Patrik Schick (República Checa)",
-  "Tomáš Souček (República Checa)",
-  "Yoane Wissa (República Democrática del Congo)",
-  "Cédric Bakambu (República Democrática del Congo)",
-  "Sadio Mané (Senegal)",
-  "Nicolas Jackson (Senegal)",
-  "Percy Tau (Sudáfrica)",
-  "Themba Zwane (Sudáfrica)",
-  "Alexander Isak (Suecia)",
-  "Viktor Gyökeres (Suecia)",
-  "Dejan Kulusevski (Suecia)",
-  "Breel Embolo (Suiza)",
-  "Zeki Amdouni (Suiza)",
-  "Youssef Msakni (Túnez)",
-  "Elias Achouri (Túnez)",
-  "Arda Güler (Turquía)",
-  "Kenan Yıldız (Turquía)",
-  "Hakan Çalhanoğlu (Turquía)",
-  "Darwin Núñez (Uruguay)",
-  "Federico Valverde (Uruguay)",
-  "Luis Suárez (Uruguay)",
-  "Eldor Shomurodov (Uzbekistán)",
-  "Oston Urunov (Uzbekistán)"
-].sort();
 
-const TOP_GOALKEEPERS = [
-  "Manuel Neuer (Alemania)",
-  "Marc-André ter Stegen (Alemania)",
-  "Mohammed Al-Owais (Arabia Saudí)",
-  "Anthony Mandrea (Argelia)",
-  "Emiliano Martínez (Argentina)",
-  "Mathew Ryan (Australia)",
-  "Patrick Pentz (Austria)",
-  "Koen Casteels (Bélgica)",
-  "Thibaut Courtois (Bélgica)",
-  "Nikola Vasilj (Bosnia y Herzegovina)",
-  "Alisson Becker (Brasil)",
-  "Ederson Moraes (Brasil)",
-  "Vozinha (Cabo Verde)",
-  "Maxime Crépeau (Canadá)",
-  "Meshaal Barsham (Catar)",
-  "Camilo Vargas (Colombia)",
-  "Jo Hyeon-woo (Corea del Sur)",
-  "Yahia Fofana (Costa de Marfil)",
-  "Dominik Livaković (Croacia)",
-  "Eloy Room (Curazao)",
-  "Alexander Domínguez (Ecuador)",
-  "Angus Gunn (Escocia)",
-  "Unai Simón (España)",
-  "David Raya (España)",
-  "Matt Turner (Estados Unidos)",
-  "Mike Maignan (Francia)",
-  "Lawrence Ati-Zigi (Ghana)",
-  "Johny Placide (Haití)",
-  "Jordan Pickford (Inglaterra)",
-  "Jalal Hassan (Irak)",
-  "Alireza Beiranvand (Irán)",
-  "Gianluigi Donnarumma (Italia)",
-  "Zion Suzuki (Japón)",
-  "Yazid Abu Layla (Jordania)",
-  "Yassine Bounou (Marruecos)",
-  "Luis Malagón (México)",
-  "Guillermo Ochoa (México)",
-  "Ørjan Nyland (Noruega)",
-  "Alex Paulsen (Nueva Zelanda)",
-  "Bart Verbruggen (Países Bajos)",
-  "Orlando Mosquera (Panamá)",
-  "Gatito Fernández (Paraguay)",
-  "Diogo Costa (Portugal)",
-  "Jindřich Staněk (República Checa)",
-  "Lionel Mpasi (República Democrática del Congo)",
-  "Édouard Mendy (Senegal)",
-  "Ronwen Williams (Sudáfrica)",
-  "Robin Olsen (Suecia)",
-  "Yann Sommer (Suiza)",
-  "Gregor Kobel (Suiza)",
-  "Bechir Ben Saïd (Túnez)",
-  "Uğurcan Çakır (Turquía)",
-  "Sergio Rochet (Uruguay)",
-  "Utkir Yusupov (Uzbekistán)"
-].sort();
 
 function isTeamPlaceholder(teamName: string): boolean {
   if (!teamName) return true;
@@ -299,7 +99,6 @@ function App() {
   const [isRegistering, setIsRegistering] = useState<boolean>(false);
   const [registerFullName, setRegisterFullName] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"matches" | "bracket" | "standings" | "sidebets" | "leaderboard" | "rules">("matches");
-  const [matchSubTab, setMatchSubTab] = useState<"groups" | "knockouts">("groups");
   
   const [loading, setLoading] = useState<boolean>(() => {
     const { telegram_id } = api.getCurrentUser();
@@ -317,6 +116,12 @@ function App() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      
+      const currentUser = api.getCurrentUser();
+      if (currentUser && currentUser.telegram_id) {
+        api.auth(currentUser.telegram_id).then(setUser).catch(console.error);
+      }
+
       const [matchesList, predsList, tourPreds] = await Promise.all([
         api.getMatches(),
         api.getPredictions(),
@@ -396,7 +201,8 @@ function App() {
     } else {
       fetchDashboardData().catch(console.error);
     }
-  }, [activeTab, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -842,41 +648,52 @@ function App() {
       return `Perdedor Partido ${matchId}`;
     };
 
-    const assigned3rdGroups = new Set<string>();
-    const assign3rdTeam = (allowedGroups: string[]): string => {
-      if (allGroupsResolved) {
-        for (const item of sorted3rd) {
-          if (allowedGroups.includes(item.group) && qualified3rdGroups.has(item.group) && !assigned3rdGroups.has(item.group)) {
-            assigned3rdGroups.add(item.group);
-            return item.team;
+    const opponents3rd: Record<string, string> = {};
+    if (allGroupsResolved) {
+      const qualifiedGroups = sorted3rd.slice(0, 8).map((x) => x.group);
+      const combKey = [...qualifiedGroups].sort().join("");
+      const combMap = THIRD_PLACE_COMBINATIONS[combKey];
+      if (combMap) {
+        const thirdTeams: Record<string, string> = {};
+        sorted3rd.forEach((item) => {
+          thirdTeams[item.group] = item.team;
+        });
+        const winners = ["1A", "1B", "1D", "1E", "1G", "1I", "1K", "1L"];
+        winners.forEach((winner) => {
+          const target3rdGroup = combMap[winner]?.[1]; // E.g. "F" from "3F"
+          if (target3rdGroup && thirdTeams[target3rdGroup]) {
+            opponents3rd[winner] = thirdTeams[target3rdGroup];
           }
-        }
-        for (const item of sorted3rd) {
-          if (allowedGroups.includes(item.group) && !assigned3rdGroups.has(item.group)) {
-            assigned3rdGroups.add(item.group);
-            return item.team;
-          }
-        }
+        });
       }
-      return `3º Grupo ${allowedGroups.join("/")}`;
-    };
+    }
+
+    // Fallbacks
+    if (!opponents3rd["1E"]) opponents3rd["1E"] = "3º Grupo A/B/C/D/F";
+    if (!opponents3rd["1I"]) opponents3rd["1I"] = "3º Grupo C/D/F/G/H";
+    if (!opponents3rd["1A"]) opponents3rd["1A"] = "3º Grupo C/E/F/H/I";
+    if (!opponents3rd["1L"]) opponents3rd["1L"] = "3º Grupo E/H/I/J/K";
+    if (!opponents3rd["1D"]) opponents3rd["1D"] = "3º Grupo B/E/F/I/J";
+    if (!opponents3rd["1G"]) opponents3rd["1G"] = "3º Grupo A/E/H/I/J";
+    if (!opponents3rd["1B"]) opponents3rd["1B"] = "3º Grupo E/F/G/I/J";
+    if (!opponents3rd["1K"]) opponents3rd["1K"] = "3º Grupo D/E/I/J/L";
 
     // Dieciseisavos (Match 73 to 88)
     resolved[73] = { home: group2nd["A"] || "2º Grupo A", away: group2nd["B"] || "2º Grupo B" };
-    resolved[74] = { home: group1st["E"] || "1º Grupo E", away: assign3rdTeam(["A", "B", "C", "D", "F"]) };
+    resolved[74] = { home: group1st["E"] || "1º Grupo E", away: opponents3rd["1E"] };
     resolved[75] = { home: group1st["F"] || "1º Grupo F", away: group2nd["C"] || "2º Grupo C" };
     resolved[76] = { home: group1st["C"] || "1º Grupo C", away: group2nd["F"] || "2º Grupo F" };
-    resolved[77] = { home: group1st["I"] || "1º Grupo I", away: assign3rdTeam(["C", "D", "F", "G", "H"]) };
+    resolved[77] = { home: group1st["I"] || "1º Grupo I", away: opponents3rd["1I"] };
     resolved[78] = { home: group2nd["E"] || "2º Grupo E", away: group2nd["I"] || "2º Grupo I" };
-    resolved[79] = { home: group1st["A"] || "1º Grupo A", away: assign3rdTeam(["C", "E", "F", "H", "I"]) };
-    resolved[80] = { home: group1st["L"] || "1º Grupo L", away: assign3rdTeam(["E", "H", "I", "J", "K"]) };
-    resolved[81] = { home: group1st["D"] || "1º Grupo D", away: assign3rdTeam(["B", "E", "F", "I", "J"]) };
-    resolved[82] = { home: group1st["G"] || "1º Grupo G", away: assign3rdTeam(["A", "E", "H", "I", "J"]) };
+    resolved[79] = { home: group1st["A"] || "1º Grupo A", away: opponents3rd["1A"] };
+    resolved[80] = { home: group1st["L"] || "1º Grupo L", away: opponents3rd["1L"] };
+    resolved[81] = { home: group1st["D"] || "1º Grupo D", away: opponents3rd["1D"] };
+    resolved[82] = { home: group1st["G"] || "1º Grupo G", away: opponents3rd["1G"] };
     resolved[83] = { home: group2nd["K"] || "2º Grupo K", away: group2nd["L"] || "2º Grupo L" };
     resolved[84] = { home: group1st["H"] || "1º Grupo H", away: group2nd["J"] || "2º Grupo J" };
-    resolved[85] = { home: group1st["B"] || "1º Grupo B", away: assign3rdTeam(["E", "F", "G", "I", "J"]) };
+    resolved[85] = { home: group1st["B"] || "1º Grupo B", away: opponents3rd["1B"] };
     resolved[86] = { home: group1st["J"] || "1º Grupo J", away: group2nd["H"] || "2º Grupo H" };
-    resolved[87] = { home: group1st["K"] || "1º Grupo K", away: assign3rdTeam(["D", "E", "I", "J", "L"]) };
+    resolved[87] = { home: group1st["K"] || "1º Grupo K", away: opponents3rd["1K"] };
     resolved[88] = { home: group2nd["D"] || "2º Grupo D", away: group2nd["G"] || "2º Grupo G" };
 
     // Octavos (Match 89 to 96)
@@ -923,31 +740,6 @@ function App() {
     })).sort((a, b) => a.groupName.localeCompare(b.groupName));
   }, [matches]);
 
-  // Group Knockout Matches by Stage
-  const knockoutMatches = useMemo(() => {
-    const stages: Record<string, { label: string; items: Match[] }> = {
-      r32: { label: "Dieciseisavos de Final (1/16)", items: [] },
-      r16: { label: "Octavos de Final (1/8)", items: [] },
-      qf: { label: "Cuartos de Final (1/4)", items: [] },
-      sf: { label: "Semifinales", items: [] },
-      third: { label: "Tercer Puesto", items: [] },
-      final: { label: "Gran Final", items: [] },
-    };
-
-    matches.forEach((m) => {
-      if (m.stage && stages[m.stage]) {
-        stages[m.stage].items.push(m);
-      }
-    });
-
-    return Object.entries(stages)
-      .filter(([, data]) => data.items.length > 0)
-      .map(([key, data]) => ({
-        key,
-        label: data.label,
-        items: data.items.sort((a, b) => a.id - b.id),
-      }));
-  }, [matches]);
 
   // Render bracket match card helper
   const renderBracketMatchCard = (m: Match) => {
@@ -1229,7 +1021,7 @@ function App() {
       <div className="auth-wrapper">
         <div className="glass-panel auth-card">
           <span className="auth-logo">🏆</span>
-          <h1>Porra Mundial 2026</h1>
+          <h1>YORRA MUNDIAL 2026</h1>
           
           {isRegistering ? (
             <>
@@ -1342,7 +1134,7 @@ function App() {
       <header className="glass-panel dashboard-header">
         <div className="logo-container">
           <span className="logo-icon">🏆</span>
-          <span className="logo-text">Porra Deportiva 2026</span>
+          <span className="logo-text">YORRA MUNDIAL 2026</span>
         </div>
         
         <div className="header-actions">
@@ -1383,13 +1175,13 @@ function App() {
           onClick={() => setActiveTab("matches")}
           className={`tab-btn ${activeTab === "matches" ? "active" : ""}`}
         >
-          Partidos y Pronósticos
+          Partidos Fase de Grupos
         </button>
         <button
           onClick={() => setActiveTab("bracket")}
           className={`tab-btn ${activeTab === "bracket" ? "active" : ""}`}
         >
-          El Cuadro (Bracket)
+          Partidos Fase Final
         </button>
         <button
           onClick={() => setActiveTab("standings")}
@@ -1426,46 +1218,16 @@ function App() {
         ) : activeTab === "matches" ? (
           // --- TAB 1: MATCHES ---
           <div>
-            <div className="matches-nav-tabs" style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem" }}>
-              <button
-                onClick={() => setMatchSubTab("groups")}
-                className={`tab-btn ${matchSubTab === "groups" ? "active" : ""}`}
-                style={{ fontSize: "0.9rem", padding: "0.5rem 1rem" }}
-              >
-                Fase de Grupos (A - L)
-              </button>
-              <button
-                onClick={() => setMatchSubTab("knockouts")}
-                className={`tab-btn ${matchSubTab === "knockouts" ? "active" : ""}`}
-                style={{ fontSize: "0.9rem", padding: "0.5rem 1rem" }}
-              >
-                Fases Eliminatorias
-              </button>
+            <div className="groups-container" style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
+              {groupStageMatches.map((group) => (
+                <section key={group.groupName} className="date-section" style={{ borderLeft: "4px solid var(--accent)", paddingLeft: "1rem" }}>
+                  <h2 className="date-header" style={{ marginBottom: "1rem" }}>Grupo {group.groupName}</h2>
+                  <div className="matches-grid">
+                    {group.items.map(renderMatchCard)}
+                  </div>
+                </section>
+              ))}
             </div>
-
-            {matchSubTab === "groups" ? (
-              <div className="groups-container" style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
-                {groupStageMatches.map((group) => (
-                  <section key={group.groupName} className="date-section" style={{ borderLeft: "4px solid var(--accent)", paddingLeft: "1rem" }}>
-                    <h2 className="date-header" style={{ marginBottom: "1rem" }}>Grupo {group.groupName}</h2>
-                    <div className="matches-grid">
-                      {group.items.map(renderMatchCard)}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            ) : (
-              <div className="knockouts-container" style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
-                {knockoutMatches.map((stage) => (
-                  <section key={stage.key} className="date-section" style={{ borderLeft: "4px solid #10b981", paddingLeft: "1rem" }}>
-                    <h2 className="date-header" style={{ marginBottom: "1rem" }}>{stage.label}</h2>
-                    <div className="matches-grid">
-                      {stage.items.map(renderMatchCard)}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            )}
           </div>
         ) : activeTab === "bracket" ? (
           // --- TAB 2: BRACKET ---
@@ -1573,7 +1335,7 @@ function App() {
                 <label className="input-label">🏆 Campeón del Mundo</label>
                 <select
                   className="premium-input"
-                  style={{ background: "rgba(15, 23, 42, 0.8)", cursor: "pointer" }}
+                  style={{ background: "#2e3b4e", color: "#ffffff", border: "1px solid rgba(255,255,255,0.15)", cursor: "pointer" }}
                   value={tournamentPredictions.champion || ""}
                   onChange={(e) => setTournamentPredictions(prev => ({ ...prev, champion: e.target.value || null }))}
                 >
@@ -1588,7 +1350,7 @@ function App() {
                 <label className="input-label">🥈 Subcampeón</label>
                 <select
                   className="premium-input"
-                  style={{ background: "rgba(15, 23, 42, 0.8)", cursor: "pointer" }}
+                  style={{ cursor: "pointer" }}
                   value={tournamentPredictions.runner_up || ""}
                   onChange={(e) => setTournamentPredictions(prev => ({ ...prev, runner_up: e.target.value || null }))}
                 >
@@ -1601,45 +1363,39 @@ function App() {
 
               <div className="input-group" style={{ marginBottom: "1.5rem" }}>
                 <label className="input-label">🔥 Máximo Goleador (Bota de Oro)</label>
-                <input
-                  type="text"
-                  list="players-list"
+                <select
                   className="premium-input"
-                  style={{ background: "rgba(15, 23, 42, 0.8)" }}
-                  placeholder="Busca o escribe un jugador..."
+                  style={{ cursor: "pointer" }}
                   value={tournamentPredictions.top_scorer || ""}
                   onChange={(e) => setTournamentPredictions(prev => ({ ...prev, top_scorer: e.target.value || null }))}
-                />
-                <datalist id="players-list">
-                  {TOP_PLAYERS.map(player => (
-                    <option key={player} value={player} />
+                >
+                  <option value="">-- Elige un jugador --</option>
+                  {ALL_FORWARDS.map(player => (
+                    <option key={player} value={player}>{player}</option>
                   ))}
-                </datalist>
+                </select>
               </div>
 
               <div className="input-group" style={{ marginBottom: "1.5rem" }}>
                 <label className="input-label">🧤 Mejor Portero (Guante de Oro)</label>
-                <input
-                  type="text"
-                  list="goalkeepers-list"
+                <select
                   className="premium-input"
-                  style={{ background: "rgba(15, 23, 42, 0.8)" }}
-                  placeholder="Busca o escribe un portero..."
+                  style={{ cursor: "pointer" }}
                   value={tournamentPredictions.best_goalkeeper || ""}
                   onChange={(e) => setTournamentPredictions(prev => ({ ...prev, best_goalkeeper: e.target.value || null }))}
-                />
-                <datalist id="goalkeepers-list">
-                  {TOP_GOALKEEPERS.map(gk => (
-                    <option key={gk} value={gk} />
+                >
+                  <option value="">-- Elige un portero --</option>
+                  {ALL_GOALKEEPERS.map(gk => (
+                    <option key={gk} value={gk}>{gk}</option>
                   ))}
-                </datalist>
+                </select>
               </div>
 
               <div className="input-group" style={{ marginBottom: "2rem" }}>
                 <label className="input-label">⭐ Equipo Revelación</label>
                 <select
                   className="premium-input"
-                  style={{ background: "rgba(15, 23, 42, 0.8)", cursor: "pointer" }}
+                  style={{ cursor: "pointer" }}
                   value={tournamentPredictions.surprise_team || ""}
                   onChange={(e) => setTournamentPredictions(prev => ({ ...prev, surprise_team: e.target.value || null }))}
                 >

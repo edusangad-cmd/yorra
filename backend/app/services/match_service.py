@@ -146,20 +146,39 @@ def resolve_bracket_teams(
     all_groups_resolved = len(resolved_groups) == len(all_groups)
 
     group_3rd_list.sort(key=cmp_to_key(compare_3rd))
-    qualified_3rd_groups = set([str(item["group"]) for item in group_3rd_list[:8]]) if all_groups_resolved else set()
 
-    assigned_3rd_groups = set()
-    def assign_3rd_team(allowed_groups: list[str]) -> str:
-        if all_groups_resolved:
-            for item in group_3rd_list:
-                if item["group"] in allowed_groups and item["group"] in qualified_3rd_groups and item["group"] not in assigned_3rd_groups:
-                    assigned_3rd_groups.add(item["group"])
-                    return str(item["team"])
-            for item in group_3rd_list:
-                if item["group"] in allowed_groups and item["group"] not in assigned_3rd_groups:
-                    assigned_3rd_groups.add(item["group"])
-                    return str(item["team"])
-        return f"3º Grupo {'/'.join(allowed_groups)}"
+    # Opponents for group winners playing against a 3rd placed team
+    opponents_3rd = {}
+    if all_groups_resolved:
+        from app.services.third_place_combinations import THIRD_PLACE_COMBINATIONS
+        
+        qualified_groups = [item["group"] for item in group_3rd_list[:8]]
+        comb_key = "".join(sorted(qualified_groups))
+        comb_map = THIRD_PLACE_COMBINATIONS.get(comb_key)
+        
+        if comb_map:
+            third_teams = {item["group"]: item["team"] for item in group_3rd_list}
+            for winner in ["1A", "1B", "1D", "1E", "1G", "1I", "1K", "1L"]:
+                target_3rd_group = comb_map[winner][1]  # E.g. "F" from "3F"
+                opponents_3rd[winner] = third_teams[target_3rd_group]
+
+    # Fallback placeholders if not resolved
+    if "1E" not in opponents_3rd:
+        opponents_3rd["1E"] = "3º Grupo A/B/C/D/F"
+    if "1I" not in opponents_3rd:
+        opponents_3rd["1I"] = "3º Grupo C/D/F/G/H"
+    if "1A" not in opponents_3rd:
+        opponents_3rd["1A"] = "3º Grupo C/E/F/H/I"
+    if "1L" not in opponents_3rd:
+        opponents_3rd["1L"] = "3º Grupo E/H/I/J/K"
+    if "1D" not in opponents_3rd:
+        opponents_3rd["1D"] = "3º Grupo B/E/F/I/J"
+    if "1G" not in opponents_3rd:
+        opponents_3rd["1G"] = "3º Grupo A/E/H/I/J"
+    if "1B" not in opponents_3rd:
+        opponents_3rd["1B"] = "3º Grupo E/F/G/I/J"
+    if "1K" not in opponents_3rd:
+        opponents_3rd["1K"] = "3º Grupo D/E/I/J/L"
 
     resolved = {}
     for m in matches:
@@ -216,20 +235,20 @@ def resolve_bracket_teams(
 
     # Dieciseisavos (Match 73 to 88)
     resolved[73] = { "home": group_2nd.get("A", "2º Grupo A"), "away": group_2nd.get("B", "2º Grupo B") }
-    resolved[74] = { "home": group_1st.get("E", "1º Grupo E"), "away": assign_3rd_team(["A", "B", "C", "D", "F"]) }
+    resolved[74] = { "home": group_1st.get("E", "1º Grupo E"), "away": opponents_3rd["1E"] }
     resolved[75] = { "home": group_1st.get("F", "1º Grupo F"), "away": group_2nd.get("C", "2º Grupo C") }
     resolved[76] = { "home": group_1st.get("C", "1º Grupo C"), "away": group_2nd.get("F", "2º Grupo F") }
-    resolved[77] = { "home": group_1st.get("I", "1º Grupo I"), "away": assign_3rd_team(["C", "D", "F", "G", "H"]) }
+    resolved[77] = { "home": group_1st.get("I", "1º Grupo I"), "away": opponents_3rd["1I"] }
     resolved[78] = { "home": group_2nd.get("E", "2º Grupo E"), "away": group_2nd.get("I", "2º Grupo I") }
-    resolved[79] = { "home": group_1st.get("A", "1º Grupo A"), "away": assign_3rd_team(["C", "E", "F", "H", "I"]) }
-    resolved[80] = { "home": group_1st.get("L", "1º Grupo L"), "away": assign_3rd_team(["E", "H", "I", "J", "K"]) }
-    resolved[81] = { "home": group_1st.get("D", "1º Grupo D"), "away": assign_3rd_team(["B", "E", "F", "I", "J"]) }
-    resolved[82] = { "home": group_1st.get("G", "1º Grupo G"), "away": assign_3rd_team(["A", "E", "H", "I", "J"]) }
+    resolved[79] = { "home": group_1st.get("A", "1º Grupo A"), "away": opponents_3rd["1A"] }
+    resolved[80] = { "home": group_1st.get("L", "1º Grupo L"), "away": opponents_3rd["1L"] }
+    resolved[81] = { "home": group_1st.get("D", "1º Grupo D"), "away": opponents_3rd["1D"] }
+    resolved[82] = { "home": group_1st.get("G", "1º Grupo G"), "away": opponents_3rd["1G"] }
     resolved[83] = { "home": group_2nd.get("K", "2º Grupo K"), "away": group_2nd.get("L", "2º Grupo L") }
     resolved[84] = { "home": group_1st.get("H", "1º Grupo H"), "away": group_2nd.get("J", "2º Grupo J") }
-    resolved[85] = { "home": group_1st.get("B", "1º Grupo B"), "away": assign_3rd_team(["E", "F", "G", "I", "J"]) }
+    resolved[85] = { "home": group_1st.get("B", "1º Grupo B"), "away": opponents_3rd["1B"] }
     resolved[86] = { "home": group_1st.get("J", "1º Grupo J"), "away": group_2nd.get("H", "2º Grupo H") }
-    resolved[87] = { "home": group_1st.get("K", "1º Grupo K"), "away": assign_3rd_team(["D", "E", "I", "J", "L"]) }
+    resolved[87] = { "home": group_1st.get("K", "1º Grupo K"), "away": opponents_3rd["1K"] }
     resolved[88] = { "home": group_2nd.get("D", "2º Grupo D"), "away": group_2nd.get("G", "2º Grupo G") }
 
     # Octavos (Match 89 to 96)
@@ -365,6 +384,7 @@ class MatchService:
         # 1. Fetch all matches
         res = await db.execute(select(Match))
         matches = list(res.scalars().all())
+        matches_map = {m.id: m for m in matches}
 
         # Resolve the real tournament bracket
         real_scores = {m.id: (m.home_score, m.away_score) for m in matches}
@@ -424,7 +444,17 @@ class MatchService:
             preds = list(pred_res.scalars().all())
 
             # A. Match predictions points
-            match_points = sum(p.points_earned for p in preds)
+            match_points = 0
+            for p in preds:
+                m = matches_map.get(p.match_id)
+                if m and m.home_score is not None and m.away_score is not None:
+                    p.points_earned = calculate_points(
+                        p.home_score, p.away_score, m.home_score, m.away_score
+                    )
+                else:
+                    p.points_earned = 0
+                db.add(p)
+                match_points += p.points_earned
 
             # B. Bracket advancement points
             user_scores: dict[int, tuple[int | None, int | None]] = {p.match_id: (p.home_score, p.away_score) for p in preds}
