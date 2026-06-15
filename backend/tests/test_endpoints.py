@@ -54,6 +54,18 @@ async def do_db_cleanup() -> None:
         for u in user_res2.scalars().all():
             await session.delete(u)
 
+        user_res_un = await session.execute(
+            select(User).where(User.telegram_id == TEST_USERNAME)  # type: ignore[arg-type]
+        )
+        for u in user_res_un.scalars().all():
+            tps = (await session.execute(select(TournamentPrediction).where(TournamentPrediction.user_id == u.id))).scalars().all()  # type: ignore[arg-type]
+            for tp in tps:
+                await session.delete(tp)
+            preds = (await session.execute(select(Prediction).where(Prediction.user_id == u.id))).scalars().all()  # type: ignore[arg-type]
+            for p in preds:
+                await session.delete(p)
+            await session.delete(u)
+
         # Delete target_tele_id user, predictions and tournament predictions
         user_res_target = await session.execute(
             select(User).where(User.telegram_id == "target_tele_id")  # type: ignore[arg-type]
@@ -733,6 +745,57 @@ async def test_get_user_predictions_endpoint() -> None:
 
 
 @pytest.mark.asyncio
+async def test_delete_user_flow() -> None:
+    # 1. Setup target user, normal user, and admin in DB
+    async with async_session_maker() as session:
+        # Check if they exist from a dirty state
+        old_target = (await session.execute(select(User).where(User.telegram_id == "to_be_deleted"))).scalars().first()  # type: ignore[arg-type]
+        if old_target:
+            await session.delete(old_target)
+        old_admin = (await session.execute(select(User).where(User.telegram_id == "educonsul"))).scalars().first()  # type: ignore[arg-type]
+        if old_admin:
+            await session.delete(old_admin)
+        await session.commit()
+
+        target_user = User(telegram_id="to_be_deleted", username="to_be_deleted", full_name="To Delete")
+        admin_user = User(telegram_id="educonsul", username="educonsul", full_name="Edu Consul")
+        normal_user = User(telegram_id=TEST_TELEGRAM_ID, username=TEST_USERNAME, full_name=TEST_FULL_NAME)
+        session.add(target_user)
+        session.add(admin_user)
+        session.add(normal_user)
+        await session.commit()
+        await session.refresh(target_user)
+        await session.refresh(admin_user)
+        await session.refresh(normal_user)
+        target_id = target_user.id
+
+    # 2. Try deleting with non-admin (should return 403)
+    headers_normal = {"X-Telegram-Id": TEST_TELEGRAM_ID}
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        res_normal = await ac.delete(f"/api/users/{target_id}", headers=headers_normal)
+        assert res_normal.status_code == 403
+        assert "permisos" in res_normal.json()["detail"]
+
+    # 3. Try deleting with admin (should return 200)
+    headers_admin = {"X-Telegram-Id": "educonsul"}
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        res_admin = await ac.delete(f"/api/users/{target_id}", headers=headers_admin)
+        assert res_admin.status_code == 200
+        assert "eliminado" in res_admin.json()["message"]
+
+    # 4. Verify user is deleted from DB
+    async with async_session_maker() as session:
+        db_user = await session.get(User, target_id)
+        assert db_user is None
+
+        # Clean up admin user
+        admin_db = await session.get(User, admin_user.id)
+        if admin_db:
+            await session.delete(admin_db)
+        await session.commit()
+
+
+@pytest.mark.asyncio
 async def test_daily_summaries_flow() -> None:
     # 1. Setup user, match, and predictions in DB
     async with async_session_maker() as session:
@@ -765,23 +828,25 @@ async def test_daily_summaries_flow() -> None:
         await session.commit()
 
     date_str = today_date.strftime("%Y-%m-%d")
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        # A. Generate daily summary
-        res_gen = await ac.post("/api/daily-summaries/generate", json={"date": date_str})
-        assert res_gen.status_code == 200
-        data_gen = res_gen.json()
-        assert data_gen["success"] is True
-        assert data_gen["summary_date"] == date_str
-        assert "Spain" in data_gen["content"]
-        assert "Cabo Verde" in data_gen["content"]
+    from unittest.mock import patch
+    with patch("app.services.ai_summary_service.AISummaryService._call_gemini_api", return_value="Spain vs Cabo Verde summary"):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            # A. Generate daily summary
+            res_gen = await ac.post("/api/daily-summaries/generate", json={"date": date_str})
+            assert res_gen.status_code == 200
+            data_gen = res_gen.json()
+            assert data_gen["success"] is True
+            assert data_gen["summary_date"] == date_str
+            assert "Spain" in data_gen["content"]
+            assert "Cabo Verde" in data_gen["content"]
 
-        # B. Get daily summaries list
-        res_list = await ac.get("/api/daily-summaries")
-        assert res_list.status_code == 200
-        summaries = res_list.json()
-        assert len(summaries) >= 1
-        assert summaries[0]["summary_date"] == date_str
-        assert summaries[0]["content"] == data_gen["content"]
+            # B. Get daily summaries list
+            res_list = await ac.get("/api/daily-summaries")
+            assert res_list.status_code == 200
+            summaries = res_list.json()
+            assert len(summaries) >= 1
+            assert summaries[0]["summary_date"] == date_str
+            assert summaries[0]["content"] == data_gen["content"]
 
     # Clean up summary
     async with async_session_maker() as session:

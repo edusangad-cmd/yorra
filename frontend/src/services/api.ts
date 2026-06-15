@@ -241,6 +241,18 @@ export const api = {
     return (await res.json()) as { message: string };
   },
 
+  async deleteUser(userId: number): Promise<{ message: string }> {
+    const res = await fetch(`${API_URL}/api/users/${userId}`, {
+      method: "DELETE",
+      headers: getHeaders(),
+    });
+    if (!res.ok) {
+      const errorData = (await res.json().catch(() => ({}))) as { detail?: string };
+      throw new Error(errorData.detail || "Error al eliminar usuario");
+    }
+    return (await res.json()) as { message: string };
+  },
+
   async getDailySummaries(): Promise<DailySummary[]> {
     const res = await fetch(`${API_URL}/api/daily-summaries`, {
       headers: getHeaders(),
@@ -264,5 +276,3 @@ export const api = {
     return (await res.json()) as DailySummary;
   },
 };
-
-
