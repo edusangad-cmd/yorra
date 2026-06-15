@@ -54,6 +54,24 @@ async def do_db_cleanup() -> None:
         for u in user_res2.scalars().all():
             await session.delete(u)
 
+        # Delete target_tele_id user, predictions and tournament predictions
+        user_res_target = await session.execute(
+            select(User).where(User.telegram_id == "target_tele_id")  # type: ignore[arg-type]
+        )
+        user_target = user_res_target.scalars().first()
+        if user_target:
+            tp_res_target = await session.execute(
+                select(TournamentPrediction).where(TournamentPrediction.user_id == user_target.id)  # type: ignore[arg-type]
+            )
+            for tp in tp_res_target.scalars().all():
+                await session.delete(tp)
+            pred_res_target = await session.execute(
+                select(Prediction).where(Prediction.user_id == user_target.id)  # type: ignore[arg-type]
+            )
+            for pred in pred_res_target.scalars().all():
+                await session.delete(pred)
+            await session.delete(user_target)
+
         await session.commit()
 
 
@@ -619,6 +637,99 @@ async def test_third_place_combinations_resolution() -> None:
     # Winner Group I (I1) vs 3rd Group G (G2) -> Match 77
     assert resolved[77]["home"] == "I1"
     assert resolved[77]["away"] == "G2"
+
+
+@pytest.mark.asyncio
+async def test_get_user_predictions_endpoint() -> None:
+    # 1. Setup user, match, predictions and tournament predictions
+    async with async_session_maker() as session:
+        # Create target user
+        target_user = User(
+            telegram_id="target_tele_id",
+            username="target_user",
+            full_name="Target User",
+            points=5,
+        )
+        session.add(target_user)
+        
+        # Create active user (for auth)
+        active_user = User(
+            telegram_id=TEST_TELEGRAM_ID,
+            username=TEST_USERNAME,
+            full_name=TEST_FULL_NAME,
+            points=0,
+        )
+        session.add(active_user)
+        await session.commit()
+        await session.refresh(target_user)
+        await session.refresh(active_user)
+
+        # Create dummy match
+        match = Match(
+            id=TEST_MATCH_ID,
+            home_team="Team A",
+            away_team="Team B",
+            status="NS",
+            date=datetime.utcnow(),
+            stage="group",
+        )
+        session.add(match)
+
+        # Create prediction for target user
+        pred = Prediction(
+            user_id=target_user.id,
+            match_id=TEST_MATCH_ID,
+            home_score=2,
+            away_score=1,
+            points_earned=3,
+        )
+        session.add(pred)
+
+        # Create tournament prediction for target user
+        tour_pred = TournamentPrediction(
+            user_id=target_user.id,
+            champion="Spain",
+            runner_up="Argentina",
+            top_scorer="Mbappe",
+            best_goalkeeper="Martinez",
+            surprise_team="Morocco",
+        )
+        session.add(tour_pred)
+        await session.commit()
+
+    # 2. Get predictions of target user
+    headers = {"X-Telegram-Id": TEST_TELEGRAM_ID}
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        # Success case
+        response = await ac.get(f"/api/users/{target_user.id}/predictions", headers=headers)
+        assert response.status_code == 200
+        data = response.json()
+        
+        # Verify user details
+        assert data["user"]["id"] == target_user.id
+        assert data["user"]["full_name"] == "Target User"
+        assert data["user"]["points"] == 5
+
+        # Verify predictions
+        assert len(data["predictions"]) == 1
+        assert data["predictions"][0]["match_id"] == TEST_MATCH_ID
+        assert data["predictions"][0]["home_score"] == 2
+        assert data["predictions"][0]["away_score"] == 1
+        assert data["predictions"][0]["points_earned"] == 3
+
+        # Verify tournament prediction
+        assert data["tournament_prediction"] is not None
+        assert data["tournament_prediction"]["champion"] == "Spain"
+        assert data["tournament_prediction"]["surprise_team"] == "Morocco"
+
+        # Not found case (404)
+        response_404 = await ac.get("/api/users/9999999/predictions", headers=headers)
+        assert response_404.status_code == 404
+        assert response_404.json()["detail"] == "Usuario no encontrado"
+
+        # Unauthenticated case (422 due to missing required X-Telegram-Id header)
+        response_401 = await ac.get(f"/api/users/{target_user.id}/predictions")
+        assert response_401.status_code == 422
 
 
 

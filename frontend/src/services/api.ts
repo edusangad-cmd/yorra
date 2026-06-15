@@ -159,6 +159,24 @@ export const api = {
     return (await res.json()) as LeaderboardResponse;
   },
 
+  async getUserPredictions(userId: number): Promise<{
+    user: User;
+    predictions: Prediction[];
+    tournament_prediction: TournamentPrediction | null;
+  }> {
+    const res = await fetch(`${API_URL}/api/users/${userId}/predictions`, {
+      headers: getHeaders(),
+    });
+    if (!res.ok) {
+      throw new Error("Error al obtener los pronósticos del usuario");
+    }
+    return (await res.json()) as {
+      user: User;
+      predictions: Prediction[];
+      tournament_prediction: TournamentPrediction | null;
+    };
+  },
+
   async getTournamentPredictions(): Promise<TournamentPrediction> {
     const res = await fetch(`${API_URL}/api/tournament-predictions`, {
       headers: getHeaders(),
