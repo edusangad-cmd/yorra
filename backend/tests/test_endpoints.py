@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from app.db.session import async_session_maker
 from app.main import app
-from app.models.models import Match, Prediction, TournamentPrediction, User
+from app.models.models import DailySummary, Match, Prediction, TournamentPrediction, User
 
 TEST_TELEGRAM_ID = "999999999"
 TEST_USERNAME = "test_user_porra"
@@ -730,6 +730,68 @@ async def test_get_user_predictions_endpoint() -> None:
         # Unauthenticated case (422 due to missing required X-Telegram-Id header)
         response_401 = await ac.get(f"/api/users/{target_user.id}/predictions")
         assert response_401.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_daily_summaries_flow() -> None:
+    # 1. Setup user, match, and predictions in DB
+    async with async_session_maker() as session:
+        user = User(telegram_id=TEST_TELEGRAM_ID, username=TEST_USERNAME, full_name=TEST_FULL_NAME)
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+
+        # Match played today
+        today_date = datetime.now(UTC).date()
+        today_match = Match(
+            id=TEST_MATCH_ID,
+            home_team="Spain",
+            away_team="Cabo Verde",
+            home_score=6,
+            away_score=0,
+            status="FT",
+            date=datetime.combine(today_date, datetime.now(UTC).time()),
+        )
+        session.add(today_match)
+
+        pred = Prediction(
+            user_id=user.id,
+            match_id=TEST_MATCH_ID,
+            home_score=6,
+            away_score=0,
+            points_earned=5,
+        )
+        session.add(pred)
+        await session.commit()
+
+    date_str = today_date.strftime("%Y-%m-%d")
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        # A. Generate daily summary
+        res_gen = await ac.post("/api/daily-summaries/generate", json={"date": date_str})
+        assert res_gen.status_code == 200
+        data_gen = res_gen.json()
+        assert data_gen["success"] is True
+        assert data_gen["summary_date"] == date_str
+        assert "Spain" in data_gen["content"]
+        assert "Cabo Verde" in data_gen["content"]
+
+        # B. Get daily summaries list
+        res_list = await ac.get("/api/daily-summaries")
+        assert res_list.status_code == 200
+        summaries = res_list.json()
+        assert len(summaries) >= 1
+        assert summaries[0]["summary_date"] == date_str
+        assert summaries[0]["content"] == data_gen["content"]
+
+    # Clean up summary
+    async with async_session_maker() as session:
+        summary_res = await session.execute(
+            select(DailySummary).where(DailySummary.summary_date == date_str)  # type: ignore[arg-type]
+        )
+        for s in summary_res.scalars().all():
+            await session.delete(s)
+        await session.commit()
+
 
 
 

@@ -62,3 +62,11 @@ class TournamentPrediction(SQLModel, table=True):
     # Relationships
     user: User = Relationship(back_populates="tournament_prediction")
 
+
+class DailySummary(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    summary_date: str = Field(unique=True, index=True)  # Formato YYYY-MM-DD
+    content: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+

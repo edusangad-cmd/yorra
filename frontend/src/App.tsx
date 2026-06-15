@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { api } from "./services/api";
-import type { Match, Prediction, User, LeaderboardUser, TournamentPrediction } from "./services/api";
+import type { Match, Prediction, User, LeaderboardUser, TournamentPrediction, DailySummary } from "./services/api";
 import { ALL_FORWARDS, ALL_GOALKEEPERS } from "./data/players";
 import { THIRD_PLACE_COMBINATIONS } from "./services/thirdPlaceCombinations";
 
@@ -93,6 +93,19 @@ function App() {
   });
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
   const [roast, setRoast] = useState<string>("");
+
+  // Daily summaries states
+  const [dailySummaries, setDailySummaries] = useState<DailySummary[]>([]);
+  const [loadingSummaries, setLoadingSummaries] = useState<boolean>(false);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState<boolean>(false);
+  const [summaryDateInput, setSummaryDateInput] = useState<string>(() => {
+    const today = new Date();
+    // Use Europe/Madrid time or local date
+    const offset = today.getTimezoneOffset();
+    const localToday = new Date(today.getTime() - (offset * 60 * 1000));
+    return localToday.toISOString().split("T")[0];
+  });
+
 
   // UI States
   const [loginInput, setLoginInput] = useState<string>("");
@@ -222,6 +235,33 @@ function App() {
     }
   };
 
+  const fetchDailySummariesData = async () => {
+    try {
+      setLoadingSummaries(true);
+      const data = await api.getDailySummaries();
+      setDailySummaries(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingSummaries(false);
+    }
+  };
+
+  const handleGenerateDailySummary = async () => {
+    if (!summaryDateInput) return;
+    try {
+      setIsGeneratingSummary(true);
+      await api.generateDailySummary(summaryDateInput);
+      await fetchDailySummariesData();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Error al generar el resumen diario.");
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
+
+
   useEffect(() => {
     const { telegram_id } = api.getCurrentUser();
     if (telegram_id) {
@@ -243,11 +283,13 @@ function App() {
     if (activeTab === "leaderboard") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchLeaderboardData().catch(console.error);
+      fetchDailySummariesData().catch(console.error);
     } else {
       fetchDashboardData().catch(console.error);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1618,7 +1660,63 @@ function App() {
                 </tbody>
               </table>
             </div>
+
+            {/* AI Daily Summaries Section */}
+            <div className="glass-panel ai-summaries-section" style={{ marginTop: "2rem", padding: "2rem", borderRadius: "16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "1rem", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
+                <h2 style={{ color: "var(--accent)", margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  📰 Crónicas Diarias de la IA
+                </h2>
+                {!viewingUser && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <input
+                      type="date"
+                      className="premium-input"
+                      style={{ padding: "0.4rem 0.8rem", width: "auto", fontSize: "0.9rem", height: "38px" }}
+                      value={summaryDateInput}
+                      onChange={(e) => setSummaryDateInput(e.target.value)}
+                    />
+                    <button
+                      className="premium-button"
+                      style={{ padding: "0.45rem 1rem", fontSize: "0.9rem", margin: 0, height: "38px" }}
+                      onClick={handleGenerateDailySummary}
+                      disabled={isGeneratingSummary}
+                    >
+                      {isGeneratingSummary ? "Generando..." : "🤖 Redactar Crónica"}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {loadingSummaries ? (
+                <p style={{ textAlign: "center", opacity: 0.7 }}>Cargando crónicas de la IA...</p>
+              ) : dailySummaries.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "2rem", opacity: 0.6 }}>
+                  <p>Aún no se ha redactado ninguna crónica diaria.</p>
+                  <p style={{ fontSize: "0.85rem" }}>Selecciona una fecha arriba y pulsa "Redactar Crónica" para ver el análisis de la IA.</p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                  {dailySummaries.map((s) => (
+                    <article key={s.id} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "12px", padding: "1.5rem" }}>
+                      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "0.5rem" }}>
+                        <span style={{ fontWeight: 600, color: "var(--accent)" }}>
+                          📅 Jornada del {s.summary_date}
+                        </span>
+                        <span style={{ fontSize: "0.75rem", opacity: 0.5 }}>
+                          Redactada el {new Date(s.created_at).toLocaleDateString()}
+                        </span>
+                      </header>
+                      <div style={{ whiteSpace: "pre-wrap", fontSize: "0.95rem", lineHeight: "1.6", color: "var(--text-body)" }}>
+                        {s.content}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
+
         ) : (
           // --- TAB 6: RULES ---
           <div style={{ maxWidth: "800px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "2rem" }}>
