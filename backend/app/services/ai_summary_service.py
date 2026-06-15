@@ -104,14 +104,14 @@ class AISummaryService:
             + "\n\nPUNTUACIÓN TOTAL DEFINITIVA DEL DÍA (solo de partidos finalizados):\n"
             + "\n".join(rankings_today)
             + "\n\nInstrucciones:\n"
-            "1. EXTENSIÓN MUY CORTA: Sé extremadamente breve, directo y al grano. La crónica debe ocupar la mitad de la extensión habitual (un resumen rápido, dinámico, máximo 1 o 2 párrafos cortos).\n"
+            "1. EXTENSIÓN CORTA: Sé breve, directo y al grano. La crónica debe ocupar: una o dos líneas de título, un párrafo por cada partido comentado de no más de 3 líneas, una o dos líneas de cierre.\n"
             "2. REGLA CRÍTICA DE ESTADOS: Distingue claramente entre partidos FINALIZADOS, EN JUEGO y NO EMPEZADOS.\n"
             "   - Para partidos FINALIZADOS: Comenta el resultado definitivo de forma rápida y destaca aciertos de marcador exacto.\n"
             "   - Para partidos EN JUEGO o NO EMPEZADOS: Habla de ellos en futuro o condicional (ej. 'Edu va ganando..., pero todo puede cambiar si Uganda gana a México...'). NUNCA los comentes como si ya hubieran terminado.\n"
             "3. GLOSARIO LOCAL (úsalos con moderación y gracia, sin abusar):\n"
             "   - 'embudo': locura, excentricidad (ej. 'menudo embudo de pronóstico').\n"
             "   - 'ponerse un embudo': volverse loco.\n"
-            "   - 'la glora': la selección española.\n"
+            "   - 'la glora': la selección española. (nunca la gloria ni nada simular, estrictamente La glora)\n"
             "   - 'el lama': Lamine Yamal.\n"
             "   - 'el ferro': Ferrán Torres (del que decimos que es muy malo).\n"
             "   - 'el dado': el entrenador de España.\n"
@@ -120,6 +120,7 @@ class AISummaryService:
             "   - 'países zes' o 'países meninos': Países Bajos.\n"
             "   - 'moros': cualquier equipo que sale a poner el cerrojazo.\n"
             "4. Escribe en español de España de manera natural, cercana y divertida."
+            "5. NO USES CARACTERES ESPECIALES PARA DIFERENCIAR LOS INPUTS COMO RESULTADOS O GLOSARIO DEL LENGUAJE NATURAL USADO POR TI: es decir, que no se vean diferencias estilísticas sino un texto corrido\n"
         )
 
         content = await AISummaryService._call_gemini_api(prompt, matches, rankings_today)
