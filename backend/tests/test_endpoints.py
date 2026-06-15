@@ -511,3 +511,81 @@ async def test_reset_endpoints() -> None:
             assert db_match.status == "NS"
 
 
+@pytest.mark.asyncio
+async def test_third_place_combinations_resolution() -> None:
+    from app.services.match_service import resolve_bracket_teams
+    from app.models.models import Match
+
+    matches = []
+    scores_map = {}
+    
+    # 1. Generate 72 group stage matches (6 per group for groups A-L)
+    match_id = 1
+    groups = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"]
+    for g in groups:
+        teams = [f"{g}1", f"{g}2", f"{g}3", f"{g}4"]
+        group_match_pairs = [
+            (teams[0], teams[1]),
+            (teams[2], teams[3]),
+            (teams[0], teams[2]),
+            (teams[1], teams[3]),
+            (teams[0], teams[3]),
+            (teams[1], teams[2]),
+        ]
+        
+        is_best_3rd = g in ["E", "F", "G", "H", "I", "J", "K", "L"]
+        
+        for idx, (home, away) in enumerate(group_match_pairs):
+            m = Match(id=match_id, home_team=home, away_team=away, stage="group", group=g)
+            matches.append(m)
+            
+            # Assign scores to determine standings
+            if idx == 0:  # 0 vs 1
+                score = (1, 0)
+            elif idx == 1:  # 2 vs 3
+                score = (1, 0) if is_best_3rd else (0, 1)
+            elif idx == 2:  # 0 vs 2
+                score = (0, 1) if is_best_3rd else (1, 0)
+            elif idx == 3:  # 1 vs 3
+                score = (1, 0)
+            elif idx == 4:  # 0 vs 3
+                score = (1, 0)
+            else:  # 1 vs 2
+                score = (0, 1) if is_best_3rd else (1, 0)
+                
+            scores_map[match_id] = score
+            match_id += 1
+
+    # 2. Add dummy knockout matches (Match 73 to 104)
+    for kid in range(73, 105):
+        matches.append(Match(id=kid, home_team=f"T1_{kid}", away_team=f"T2_{kid}", stage="knockout"))
+
+    # 3. Call resolve_bracket_teams
+    resolved = resolve_bracket_teams(matches, scores_map, {})
+
+    # 4. Assertions for EFGHIJKL combination
+    # Winner Group A (A1) vs 3rd Group E (E2) -> Match 79
+    assert resolved[79]["home"] == "A1"
+    assert resolved[79]["away"] == "E2"
+
+    # Winner Group B (B1) vs 3rd Group J (J2) -> Match 85
+    assert resolved[85]["home"] == "B1"
+    assert resolved[85]["away"] == "J2"
+
+    # Winner Group D (D1) vs 3rd Group I (I2) -> Match 81
+    assert resolved[81]["home"] == "D1"
+    assert resolved[81]["away"] == "I2"
+
+    # Winner Group E (E1 or E3/E2 depending on standing, let's just make sure it's resolved and matches combination)
+    # E3 won all three games -> 9 pts. E1 won vs E2, E4 -> 6 pts. E2 won vs E4 -> 3 pts. E4 lost all -> 0 pts.
+    # So: 1st in E is E3.
+    assert resolved[74]["home"] == "E3"
+    # Winner Group E (E3) vs 3rd Group F (F2) -> Match 74
+    assert resolved[74]["away"] == "F2"
+
+    # Winner Group I (I3) vs 3rd Group G (G2) -> Match 77
+    assert resolved[77]["home"] == "I3"
+    assert resolved[77]["away"] == "G2"
+
+
+

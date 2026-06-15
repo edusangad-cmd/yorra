@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { api } from "./services/api";
 import type { Match, Prediction, User, LeaderboardUser, TournamentPrediction } from "./services/api";
 import { ALL_FORWARDS, ALL_GOALKEEPERS } from "./data/players";
+import { THIRD_PLACE_COMBINATIONS } from "./services/thirdPlaceCombinations";
 
 const ALL_TEAMS_ES = [
   "Alemania", "Arabia Saudí", "Argelia", "Argentina", "Australia", "Austria", "Bélgica", 
@@ -647,41 +648,52 @@ function App() {
       return `Perdedor Partido ${matchId}`;
     };
 
-    const assigned3rdGroups = new Set<string>();
-    const assign3rdTeam = (allowedGroups: string[]): string => {
-      if (allGroupsResolved) {
-        for (const item of sorted3rd) {
-          if (allowedGroups.includes(item.group) && qualified3rdGroups.has(item.group) && !assigned3rdGroups.has(item.group)) {
-            assigned3rdGroups.add(item.group);
-            return item.team;
+    const opponents3rd: Record<string, string> = {};
+    if (allGroupsResolved) {
+      const qualifiedGroups = sorted3rd.slice(0, 8).map((x) => x.group);
+      const combKey = [...qualifiedGroups].sort().join("");
+      const combMap = THIRD_PLACE_COMBINATIONS[combKey];
+      if (combMap) {
+        const thirdTeams: Record<string, string> = {};
+        sorted3rd.forEach((item) => {
+          thirdTeams[item.group] = item.team;
+        });
+        const winners = ["1A", "1B", "1D", "1E", "1G", "1I", "1K", "1L"];
+        winners.forEach((winner) => {
+          const target3rdGroup = combMap[winner]?.[1]; // E.g. "F" from "3F"
+          if (target3rdGroup && thirdTeams[target3rdGroup]) {
+            opponents3rd[winner] = thirdTeams[target3rdGroup];
           }
-        }
-        for (const item of sorted3rd) {
-          if (allowedGroups.includes(item.group) && !assigned3rdGroups.has(item.group)) {
-            assigned3rdGroups.add(item.group);
-            return item.team;
-          }
-        }
+        });
       }
-      return `3º Grupo ${allowedGroups.join("/")}`;
-    };
+    }
+
+    // Fallbacks
+    if (!opponents3rd["1E"]) opponents3rd["1E"] = "3º Grupo A/B/C/D/F";
+    if (!opponents3rd["1I"]) opponents3rd["1I"] = "3º Grupo C/D/F/G/H";
+    if (!opponents3rd["1A"]) opponents3rd["1A"] = "3º Grupo C/E/F/H/I";
+    if (!opponents3rd["1L"]) opponents3rd["1L"] = "3º Grupo E/H/I/J/K";
+    if (!opponents3rd["1D"]) opponents3rd["1D"] = "3º Grupo B/E/F/I/J";
+    if (!opponents3rd["1G"]) opponents3rd["1G"] = "3º Grupo A/E/H/I/J";
+    if (!opponents3rd["1B"]) opponents3rd["1B"] = "3º Grupo E/F/G/I/J";
+    if (!opponents3rd["1K"]) opponents3rd["1K"] = "3º Grupo D/E/I/J/L";
 
     // Dieciseisavos (Match 73 to 88)
     resolved[73] = { home: group2nd["A"] || "2º Grupo A", away: group2nd["B"] || "2º Grupo B" };
-    resolved[74] = { home: group1st["E"] || "1º Grupo E", away: assign3rdTeam(["A", "B", "C", "D", "F"]) };
+    resolved[74] = { home: group1st["E"] || "1º Grupo E", away: opponents3rd["1E"] };
     resolved[75] = { home: group1st["F"] || "1º Grupo F", away: group2nd["C"] || "2º Grupo C" };
     resolved[76] = { home: group1st["C"] || "1º Grupo C", away: group2nd["F"] || "2º Grupo F" };
-    resolved[77] = { home: group1st["I"] || "1º Grupo I", away: assign3rdTeam(["C", "D", "F", "G", "H"]) };
+    resolved[77] = { home: group1st["I"] || "1º Grupo I", away: opponents3rd["1I"] };
     resolved[78] = { home: group2nd["E"] || "2º Grupo E", away: group2nd["I"] || "2º Grupo I" };
-    resolved[79] = { home: group1st["A"] || "1º Grupo A", away: assign3rdTeam(["C", "E", "F", "H", "I"]) };
-    resolved[80] = { home: group1st["L"] || "1º Grupo L", away: assign3rdTeam(["E", "H", "I", "J", "K"]) };
-    resolved[81] = { home: group1st["D"] || "1º Grupo D", away: assign3rdTeam(["B", "E", "F", "I", "J"]) };
-    resolved[82] = { home: group1st["G"] || "1º Grupo G", away: assign3rdTeam(["A", "E", "H", "I", "J"]) };
+    resolved[79] = { home: group1st["A"] || "1º Grupo A", away: opponents3rd["1A"] };
+    resolved[80] = { home: group1st["L"] || "1º Grupo L", away: opponents3rd["1L"] };
+    resolved[81] = { home: group1st["D"] || "1º Grupo D", away: opponents3rd["1D"] };
+    resolved[82] = { home: group1st["G"] || "1º Grupo G", away: opponents3rd["1G"] };
     resolved[83] = { home: group2nd["K"] || "2º Grupo K", away: group2nd["L"] || "2º Grupo L" };
     resolved[84] = { home: group1st["H"] || "1º Grupo H", away: group2nd["J"] || "2º Grupo J" };
-    resolved[85] = { home: group1st["B"] || "1º Grupo B", away: assign3rdTeam(["E", "F", "G", "I", "J"]) };
+    resolved[85] = { home: group1st["B"] || "1º Grupo B", away: opponents3rd["1B"] };
     resolved[86] = { home: group1st["J"] || "1º Grupo J", away: group2nd["H"] || "2º Grupo H" };
-    resolved[87] = { home: group1st["K"] || "1º Grupo K", away: assign3rdTeam(["D", "E", "I", "J", "L"]) };
+    resolved[87] = { home: group1st["K"] || "1º Grupo K", away: opponents3rd["1K"] };
     resolved[88] = { home: group2nd["D"] || "2º Grupo D", away: group2nd["G"] || "2º Grupo G" };
 
     // Octavos (Match 89 to 96)
