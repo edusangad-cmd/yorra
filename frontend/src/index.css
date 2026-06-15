@@ -1009,3 +1009,68 @@ body {
   font-style: italic;
   opacity: 0.5;
 }
+
+/* Viewing other user mode styling */
+.viewing-mode-gray {
+  filter: grayscale(45%) brightness(95%);
+  opacity: 0.9;
+  pointer-events: none; /* Disables all clicking/hovering inside the main content area */
+  user-select: none;
+  transition: filter 0.3s ease, opacity 0.3s ease;
+}
+
+/* Specific styling for banner */
+.viewing-user-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  margin: 0 2rem 1.5rem 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.viewing-user-banner .banner-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1rem;
+  color: #f3f4f6;
+}
+
+.viewing-user-banner .banner-icon {
+  font-size: 1.5rem;
+}
+
+.viewing-user-banner .btn-back-to-own {
+  background: var(--accent);
+  color: #ffffff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.viewing-user-banner .btn-back-to-own:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.viewing-user-banner .btn-back-to-own:active {
+  transform: translateY(0);
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+

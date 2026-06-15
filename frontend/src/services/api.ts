@@ -50,6 +50,14 @@ export interface LeaderboardResponse {
   roast: string;
 }
 
+export interface DailySummary {
+  id: number;
+  summary_date: string;
+  content: string;
+  created_at: string;
+}
+
+
 function getHeaders(): HeadersInit {
   const telegramId = localStorage.getItem("telegram_id");
   const headers: HeadersInit = {
@@ -244,5 +252,27 @@ export const api = {
     }
     return (await res.json()) as { message: string };
   },
-};
 
+  async getDailySummaries(): Promise<DailySummary[]> {
+    const res = await fetch(`${API_URL}/api/daily-summaries`, {
+      headers: getHeaders(),
+    });
+    if (!res.ok) {
+      throw new Error("Error al obtener las crónicas de IA");
+    }
+    return (await res.json()) as DailySummary[];
+  },
+
+  async generateDailySummary(date: string): Promise<DailySummary> {
+    const res = await fetch(`${API_URL}/api/daily-summaries/generate`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ date }),
+    });
+    if (!res.ok) {
+      const errorData = (await res.json().catch(() => ({}))) as { detail?: string };
+      throw new Error(errorData.detail || "Error al generar la crónica de IA");
+    }
+    return (await res.json()) as DailySummary;
+  },
+};
