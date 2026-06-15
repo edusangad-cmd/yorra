@@ -80,264 +80,6 @@ interface TeamStanding {
   goalDiff: number;
 }
 
-function resolveBracketForUser(matches: Match[], userPredictions: Record<number, Prediction>) {
-  // 1. Calculate Group Standings
-  const groupStandings: Record<string, Record<string, TeamStanding>> = {};
-  matches.forEach((m) => {
-    if (m.stage === "group" && m.group) {
-      const g = m.group;
-      if (!groupStandings[g]) {
-        groupStandings[g] = {};
-      }
-      if (!groupStandings[g][m.home_team]) {
-        groupStandings[g][m.home_team] = { team: m.home_team, points: 0, played: 0, goalsFor: 0, goalsAgainst: 0, goalDiff: 0 };
-      }
-      if (!groupStandings[g][m.away_team]) {
-        groupStandings[g][m.away_team] = { team: m.away_team, points: 0, played: 0, goalsFor: 0, goalsAgainst: 0, goalDiff: 0 };
-      }
-    }
-  });
-
-  matches.forEach((m) => {
-    if (m.stage === "group" && m.group) {
-      const g = m.group;
-      let homeGoals: number | null = null;
-      let awayGoals: number | null = null;
-
-      const pred = userPredictions[m.id];
-      if (m.home_score !== null && m.away_score !== null) {
-        homeGoals = m.home_score;
-        awayGoals = m.away_score;
-      } else if (pred) {
-        homeGoals = pred.home_score;
-        awayGoals = pred.away_score;
-      }
-
-      if (homeGoals !== null && awayGoals !== null) {
-        const home = groupStandings[g][m.home_team];
-        const away = groupStandings[g][m.away_team];
-
-        home.played += 1;
-        away.played += 1;
-        home.goalsFor += homeGoals;
-        home.goalsAgainst += awayGoals;
-        away.goalsFor += awayGoals;
-        away.goalsAgainst += homeGoals;
-
-        home.goalDiff = home.goalsFor - home.goalsAgainst;
-        away.goalDiff = away.goalsFor - away.goalsAgainst;
-
-        if (homeGoals > awayGoals) {
-          home.points += 3;
-        } else if (homeGoals < awayGoals) {
-          away.points += 3;
-        } else {
-          home.points += 1;
-          away.points += 1;
-        }
-      }
-    }
-  });
-
-  const sortedStandings: Record<string, TeamStanding[]> = {};
-  Object.keys(groupStandings).forEach((g) => {
-    sortedStandings[g] = Object.values(groupStandings[g]).sort((a, b) => {
-      if (b.points !== a.points) return b.points - a.points;
-      if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
-      if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
-      return a.team.localeCompare(b.team);
-    });
-  });
-
-  // Check which groups are fully filled
-  const resolvedGroups = new Set<string>();
-  const allGroups = new Set(matches.filter(m => m.stage === "group" && m.group).map(m => m.group as string));
-
-  allGroups.forEach((g) => {
-    const groupMatches = matches.filter(m => m.stage === "group" && m.group === g);
-    const isFilled = groupMatches.every((m) => {
-      const hasReal = m.home_score !== null && m.away_score !== null;
-      const hasPred = userPredictions[m.id] !== undefined;
-      return hasReal || hasPred;
-    });
-    if (isFilled) {
-      resolvedGroups.add(g);
-    }
-  });
-
-  // 2. Resolve Bracket
-  const group1st: Record<string, string> = {};
-  const group2nd: Record<string, string> = {};
-  const group3rdList: { group: string; team: string; points: number; goalDiff: number; goalsFor: number }[] = [];
-
-  Object.entries(sortedStandings).forEach(([g, list]) => {
-    if (resolvedGroups.has(g)) {
-      if (list[0]) group1st[g] = list[0].team;
-      if (list[1]) group2nd[g] = list[1].team;
-      if (list[2]) {
-        group3rdList.push({
-          group: g,
-          team: list[2].team,
-          points: list[2].points,
-          goalDiff: list[2].goalDiff,
-          goalsFor: list[2].goalsFor,
-        });
-      }
-    } else {
-      group1st[g] = `1º Grupo ${g}`;
-      group2nd[g] = `2º Grupo ${g}`;
-    }
-  });
-
-  const sorted3rd = [...group3rdList].sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
-    if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
-    if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
-    return a.group.localeCompare(b.group);
-  });
-
-  const allGroupsResolved = resolvedGroups.size === allGroups.size;
-  const resolved: Record<number, { home: string; away: string }> = {};
-
-  matches.forEach((m) => {
-    if (m.stage === "group") {
-      resolved[m.id] = { home: m.home_team, away: m.away_team };
-    }
-  });
-
-  const getWinner = (matchId: number): string => {
-    const m = matches.find((x) => x.id === matchId);
-    if (!m) return `Ganador Partido ${matchId}`;
-
-    if (m.home_score !== null && m.away_score !== null) {
-      if (m.home_score > m.away_score) return m.home_team;
-      if (m.home_score < m.away_score) return m.away_team;
-      return m.home_team;
-    }
-
-    const pred = userPredictions[matchId];
-    if (pred) {
-      if (pred.home_score > pred.away_score) {
-        return resolved[matchId]?.home || m.home_team;
-      }
-      if (pred.home_score < pred.away_score) {
-        return resolved[matchId]?.away || m.away_team;
-      }
-      // Check stored penalty winner
-      if (pred.penalty_winner_home !== null && pred.penalty_winner_home !== undefined) {
-        return pred.penalty_winner_home
-          ? (resolved[matchId]?.home || m.home_team)
-          : (resolved[matchId]?.away || m.away_team);
-      }
-      return resolved[matchId]?.home || m.home_team;
-    }
-    return `Ganador Partido ${matchId}`;
-  };
-
-  const getLoser = (matchId: number): string => {
-    const m = matches.find((x) => x.id === matchId);
-    if (!m) return `Perdedor Partido ${matchId}`;
-
-    if (m.home_score !== null && m.away_score !== null) {
-      if (m.home_score > m.away_score) return m.away_team;
-      if (m.home_score < m.away_score) return m.home_team;
-      return m.away_team;
-    }
-
-    const pred = userPredictions[matchId];
-    if (pred) {
-      if (pred.home_score > pred.away_score) {
-        return resolved[matchId]?.away || m.away_team;
-      }
-      if (pred.home_score < pred.away_score) {
-        return resolved[matchId]?.home || m.home_team;
-      }
-      // Check stored penalty winner
-      if (pred.penalty_winner_home !== null && pred.penalty_winner_home !== undefined) {
-        return pred.penalty_winner_home
-          ? (resolved[matchId]?.away || m.away_team)
-          : (resolved[matchId]?.home || m.home_team);
-      }
-      return resolved[matchId]?.away || m.away_team;
-    }
-    return `Perdedor Partido ${matchId}`;
-  };
-
-  const opponents3rd: Record<string, string> = {};
-  if (allGroupsResolved) {
-    const qualifiedGroups = sorted3rd.slice(0, 8).map((x) => x.group);
-    const combKey = [...qualifiedGroups].sort().join("");
-    const combMap = THIRD_PLACE_COMBINATIONS[combKey];
-    if (combMap) {
-      const thirdTeams: Record<string, string> = {};
-      sorted3rd.forEach((item) => {
-        thirdTeams[item.group] = item.team;
-      });
-      const winners = ["1A", "1B", "1D", "1E", "1G", "1I", "1K", "1L"];
-      winners.forEach((winner) => {
-        const target3rdGroup = combMap[winner]?.[1];
-        if (target3rdGroup && thirdTeams[target3rdGroup]) {
-          opponents3rd[winner] = thirdTeams[target3rdGroup];
-        }
-      });
-    }
-  }
-
-  // Fallbacks
-  if (!opponents3rd["1E"]) opponents3rd["1E"] = "3º Grupo A/B/C/D/F";
-  if (!opponents3rd["1I"]) opponents3rd["1I"] = "3º Grupo C/D/F/G/H";
-  if (!opponents3rd["1A"]) opponents3rd["1A"] = "3º Grupo C/E/F/H/I";
-  if (!opponents3rd["1L"]) opponents3rd["1L"] = "3º Grupo E/H/I/J/K";
-  if (!opponents3rd["1D"]) opponents3rd["1D"] = "3º Grupo B/E/F/I/J";
-  if (!opponents3rd["1G"]) opponents3rd["1G"] = "3º Grupo A/E/H/I/J";
-  if (!opponents3rd["1B"]) opponents3rd["1B"] = "3º Grupo E/F/G/I/J";
-  if (!opponents3rd["1K"]) opponents3rd["1K"] = "3º Grupo D/E/I/J/L";
-
-  // Dieciseisavos (Match 73 to 88)
-  resolved[73] = { home: group2nd["A"] || "2º Grupo A", away: group2nd["B"] || "2º Grupo B" };
-  resolved[74] = { home: group1st["E"] || "1º Grupo E", away: opponents3rd["1E"] };
-  resolved[75] = { home: group1st["F"] || "1º Grupo F", away: group2nd["C"] || "2º Grupo C" };
-  resolved[76] = { home: group1st["C"] || "1º Grupo C", away: group2nd["F"] || "2º Grupo F" };
-  resolved[77] = { home: group1st["I"] || "1º Grupo I", away: opponents3rd["1I"] };
-  resolved[78] = { home: group2nd["E"] || "2º Grupo E", away: group2nd["I"] || "2º Grupo I" };
-  resolved[79] = { home: group1st["A"] || "1º Grupo A", away: opponents3rd["1A"] };
-  resolved[80] = { home: group1st["L"] || "1º Grupo L", away: opponents3rd["1L"] };
-  resolved[81] = { home: group1st["D"] || "1º Grupo D", away: opponents3rd["1D"] };
-  resolved[82] = { home: group1st["G"] || "1º Grupo G", away: opponents3rd["1G"] };
-  resolved[83] = { home: group2nd["K"] || "2º Grupo K", away: group2nd["L"] || "2º Grupo L" };
-  resolved[84] = { home: group1st["H"] || "1º Grupo H", away: group2nd["J"] || "2º Grupo J" };
-  resolved[85] = { home: group1st["B"] || "1º Grupo B", away: opponents3rd["1B"] };
-  resolved[86] = { home: group1st["J"] || "1º Grupo J", away: group2nd["H"] || "2º Grupo H" };
-  resolved[87] = { home: group1st["K"] || "1º Grupo K", away: opponents3rd["1K"] };
-  resolved[88] = { home: group2nd["D"] || "2º Grupo D", away: group2nd["G"] || "2º Grupo G" };
-
-  // Octavos (Match 89 to 96)
-  resolved[89] = { home: getWinner(74), away: getWinner(77) };
-  resolved[90] = { home: getWinner(73), away: getWinner(75) };
-  resolved[91] = { home: getWinner(76), away: getWinner(78) };
-  resolved[92] = { home: getWinner(79), away: getWinner(80) };
-  resolved[93] = { home: getWinner(83), away: getWinner(84) };
-  resolved[94] = { home: getWinner(81), away: getWinner(82) };
-  resolved[95] = { home: getWinner(86), away: getWinner(88) };
-  resolved[96] = { home: getWinner(85), away: getWinner(87) };
-
-  // Cuartos (Match 97 to 100)
-  resolved[97] = { home: getWinner(89), away: getWinner(90) };
-  resolved[98] = { home: getWinner(93), away: getWinner(94) };
-  resolved[99] = { home: getWinner(91), away: getWinner(92) };
-  resolved[100] = { home: getWinner(95), away: getWinner(96) };
-
-  // Semifinales (Match 101 to 102)
-  resolved[101] = { home: getWinner(97), away: getWinner(98) };
-  resolved[102] = { home: getWinner(99), away: getWinner(100) };
-
-  // Bottom / Finals
-  resolved[103] = { home: getLoser(101), away: getLoser(102) };
-  resolved[104] = { home: getWinner(101), away: getWinner(102) };
-
-  return resolved;
-}
-
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
@@ -372,39 +114,49 @@ function App() {
   const [editingPenaltyWinners, setEditingPenaltyWinners] = useState<Record<number, boolean>>({});
   const [actionLoading, setActionLoading] = useState<Record<number, boolean>>({});
 
-  // Modal states for other users' predictions
-  const [selectedUserForModal, setSelectedUserForModal] = useState<LeaderboardUser | null>(null);
-  const [modalPredictions, setModalPredictions] = useState<Record<number, Prediction>>({});
-  const [modalTournament, setModalTournament] = useState<TournamentPrediction | null>(null);
-  const [modalLoading, setModalLoading] = useState<boolean>(false);
-  const [modalError, setModalError] = useState<string | null>(null);
-  const [modalTab, setModalTab] = useState<"sidebets" | "groups" | "finals">("sidebets");
+  // Viewing other user's dashboard state
+  const [viewingUser, setViewingUser] = useState<LeaderboardUser | null>(null);
+  const [viewedUserPredictions, setViewedUserPredictions] = useState<Record<number, Prediction>>({});
+  const [viewedUserTournament, setViewedUserTournament] = useState<TournamentPrediction>({
+    champion: null,
+    runner_up: null,
+    top_scorer: null,
+    best_goalkeeper: null,
+    surprise_team: null,
+  });
+  const [viewedUserLoading, setViewedUserLoading] = useState<boolean>(false);
+  const [viewedUserError, setViewedUserError] = useState<string | null>(null);
 
-  const openUserPredictionsModal = async (u: LeaderboardUser) => {
-    setSelectedUserForModal(u);
-    setModalLoading(true);
-    setModalError(null);
-    setModalTab("sidebets");
+  const handleViewUserDashboard = async (u: LeaderboardUser) => {
+    setViewingUser(u);
+    setViewedUserLoading(true);
+    setViewedUserError(null);
+    setActiveTab("matches");
     try {
       const res = await api.getUserPredictions(u.id);
       const predsRecord: Record<number, Prediction> = {};
       res.predictions.forEach((p) => {
         predsRecord[p.match_id] = p;
       });
-      setModalPredictions(predsRecord);
-      setModalTournament(res.tournament_prediction);
+      setViewedUserPredictions(predsRecord);
+      if (res.tournament_prediction) {
+        setViewedUserTournament(res.tournament_prediction);
+      } else {
+        setViewedUserTournament({
+          champion: null,
+          runner_up: null,
+          top_scorer: null,
+          best_goalkeeper: null,
+          surprise_team: null,
+        });
+      }
     } catch (err: unknown) {
       const error = err as Error;
-      setModalError(error.message || "Error al cargar los pronósticos");
+      setViewedUserError(error.message || "Error al cargar los pronósticos del usuario");
     } finally {
-      setModalLoading(false);
+      setViewedUserLoading(false);
     }
   };
-
-  const modalResolvedBracket = useMemo(() => {
-    if (!selectedUserForModal || modalLoading) return {};
-    return resolveBracketForUser(matches, modalPredictions);
-  }, [matches, selectedUserForModal, modalPredictions, modalLoading]);
 
   const fetchDashboardData = async () => {
     try {
@@ -715,6 +467,8 @@ function App() {
 
   // Standings & Bracket Calculations
   const { standings, resolvedBracket } = useMemo(() => {
+    const activePredictions = viewingUser ? viewedUserPredictions : predictions;
+
     // 1. Calculate Group Standings
     const groupStandings: Record<string, Record<string, TeamStanding>> = {};
     matches.forEach((m) => {
@@ -738,8 +492,8 @@ function App() {
         let homeGoals: number | null = null;
         let awayGoals: number | null = null;
 
-        const pred = predictions[m.id];
-        const draft = editingScores[m.id];
+        const pred = activePredictions[m.id];
+        const draft = viewingUser ? null : editingScores[m.id];
         if (m.home_score !== null && m.away_score !== null) {
           homeGoals = m.home_score;
           awayGoals = m.away_score;
@@ -854,9 +608,9 @@ function App() {
         return m.home_team;
       }
 
-      const draft = editingScores[matchId];
-      const draftPenaltyWinnerHome = editingPenaltyWinners[matchId];
-      const pred = predictions[matchId];
+      const draft = viewingUser ? null : editingScores[matchId];
+      const draftPenaltyWinnerHome = viewingUser ? undefined : editingPenaltyWinners[matchId];
+      const pred = activePredictions[matchId];
 
       if (draft && draft.home !== "" && draft.away !== "") {
         const h = parseInt(draft.home, 10);
@@ -902,9 +656,9 @@ function App() {
         return m.away_team;
       }
 
-      const draft = editingScores[matchId];
-      const draftPenaltyWinnerHome = editingPenaltyWinners[matchId];
-      const pred = predictions[matchId];
+      const draft = viewingUser ? null : editingScores[matchId];
+      const draftPenaltyWinnerHome = viewingUser ? undefined : editingPenaltyWinners[matchId];
+      const pred = activePredictions[matchId];
 
       if (draft && draft.home !== "" && draft.away !== "") {
         const h = parseInt(draft.home, 10);
@@ -1013,7 +767,7 @@ function App() {
     resolved[104] = { home: getWinner(101), away: getWinner(102) };
 
     return { standings: sortedStandings, resolvedBracket: resolved };
-  }, [matches, predictions, editingScores, editingPenaltyWinners]);
+  }, [matches, predictions, editingScores, editingPenaltyWinners, viewingUser, viewedUserPredictions]);
 
   // Group Matches by Group name (A-L) for group stage
   const groupStageMatches = useMemo(() => {
@@ -1035,8 +789,10 @@ function App() {
 
   // Render bracket match card helper
   const renderBracketMatchCard = (m: Match) => {
-    const pred = predictions[m.id];
-    const draft = editingScores[m.id] || { home: "", away: "" };
+    const pred = viewingUser ? viewedUserPredictions[m.id] : predictions[m.id];
+    const draft = viewingUser
+      ? { home: pred ? String(pred.home_score) : "", away: pred ? String(pred.away_score) : "" }
+      : (editingScores[m.id] || { home: "", away: "" });
     const isSaving = actionLoading[m.id] || false;
 
     const matchDateObj = new Date(m.date);
@@ -1055,20 +811,22 @@ function App() {
     const awayScoreInt = draft.away !== "" ? parseInt(draft.away, 10) : null;
     const hasDraft = homeScoreInt !== null && awayScoreInt !== null;
     const isTie = hasDraft && homeScoreInt === awayScoreInt;
-    const penaltyWinnerHome = editingPenaltyWinners[m.id] ?? true;
+    const penaltyWinnerHome = viewingUser
+      ? (pred ? !!pred.penalty_winner_home : true)
+      : (editingPenaltyWinners[m.id] ?? true);
 
     const predHome = pred ? pred.home_score : null;
     const predAway = pred ? pred.away_score : null;
     const predPenalty = pred ? pred.penalty_winner_home : null;
 
-    const isModified = hasDraft && (
+    const isModified = !viewingUser && hasDraft && (
       homeScoreInt !== predHome ||
       awayScoreInt !== predAway ||
       (homeScoreInt === awayScoreInt && (penaltyWinnerHome !== (predPenalty ?? true)))
     );
 
     const handlePenaltyWinnerToggle = (homeWins: boolean) => {
-      if (isStarted || hasFinished || isPlaceholder) return;
+      if (isStarted || hasFinished || isPlaceholder || !!viewingUser) return;
       setEditingPenaltyWinners((prev) => ({
         ...prev,
         [m.id]: homeWins,
@@ -1099,7 +857,7 @@ function App() {
           <div 
             onClick={() => isTie && handlePenaltyWinnerToggle(true)}
             className={`bracket-team-row ${isTie && penaltyWinnerHome ? "penalty-winner" : ""}`}
-            style={{ cursor: isTie ? "pointer" : "default" }}
+            style={{ cursor: isTie && !viewingUser ? "pointer" : "default" }}
           >
             <span className="bracket-team-name">
               <span className="bracket-flag">{homeFlag}</span>
@@ -1115,7 +873,7 @@ function App() {
                 placeholder="-"
                 value={draft.home}
                 onChange={(e) => handleScoreChange(m.id, "home", e.target.value)}
-                disabled={isStarted || hasFinished || isPlaceholder}
+                disabled={isStarted || hasFinished || isPlaceholder || !!viewingUser}
               />
             )}
           </div>
@@ -1126,7 +884,7 @@ function App() {
           <div 
             onClick={() => isTie && handlePenaltyWinnerToggle(false)}
             className={`bracket-team-row ${isTie && !penaltyWinnerHome ? "penalty-winner" : ""}`}
-            style={{ cursor: isTie ? "pointer" : "default" }}
+            style={{ cursor: isTie && !viewingUser ? "pointer" : "default" }}
           >
             <span className="bracket-team-name">
               <span className="bracket-flag">{awayFlag}</span>
@@ -1142,7 +900,7 @@ function App() {
                 placeholder="-"
                 value={draft.away}
                 onChange={(e) => handleScoreChange(m.id, "away", e.target.value)}
-                disabled={isStarted || hasFinished || isPlaceholder}
+                disabled={isStarted || hasFinished || isPlaceholder || !!viewingUser}
               />
             )}
           </div>
@@ -1172,8 +930,10 @@ function App() {
 
   // Render match card helper
   const renderMatchCard = (m: Match) => {
-    const pred = predictions[m.id];
-    const draft = editingScores[m.id] || { home: "", away: "" };
+    const pred = viewingUser ? viewedUserPredictions[m.id] : predictions[m.id];
+    const draft = viewingUser
+      ? { home: pred ? String(pred.home_score) : "", away: pred ? String(pred.away_score) : "" }
+      : (editingScores[m.id] || { home: "", away: "" });
     const isSaving = actionLoading[m.id] || false;
 
     const matchDateObj = new Date(m.date);
@@ -1188,8 +948,9 @@ function App() {
     const awayFlag = getFlagEmoji(awayResolved);
 
     const isModified =
-      draft.home !== (pred ? String(pred.home_score) : "") ||
-      draft.away !== (pred ? String(pred.away_score) : "");
+      !viewingUser &&
+      (draft.home !== (pred ? String(pred.home_score) : "") ||
+       draft.away !== (pred ? String(pred.away_score) : ""));
 
     // Format concrete knockout label
     let koMatchLabel = "";
@@ -1241,7 +1002,7 @@ function App() {
                 placeholder="-"
                 value={draft.home}
                 onChange={(e) => handleScoreChange(m.id, "home", e.target.value)}
-                disabled={isStarted || hasFinished}
+                disabled={isStarted || hasFinished || !!viewingUser}
               />
               <span className="score-dash">-</span>
               <input
@@ -1250,7 +1011,7 @@ function App() {
                 placeholder="-"
                 value={draft.away}
                 onChange={(e) => handleScoreChange(m.id, "away", e.target.value)}
-                disabled={isStarted || hasFinished}
+                disabled={isStarted || hasFinished || !!viewingUser}
               />
             </div>
           </div>
@@ -1420,6 +1181,8 @@ function App() {
   }
 
   // --- DASHBOARD VIEW ---
+  const displayTournamentPredictions = viewingUser ? viewedUserTournament : tournamentPredictions;
+
   return (
     <>
       {/* Header */}
@@ -1430,9 +1193,11 @@ function App() {
         </div>
         
         <div className="header-actions">
-          <button onClick={handleSaveAllDrafts} className="btn-save-all-drafts">
-            💾 Guardar Todo
-          </button>
+          {!viewingUser && (
+            <button onClick={handleSaveAllDrafts} className="btn-save-all-drafts">
+              💾 Guardar Todo
+            </button>
+          )}
           <div className="user-nav-profile">
             <span className="user-score">
               👤 {user.full_name} ({user.points} pts)
@@ -1444,22 +1209,45 @@ function App() {
         </div>
       </header>
 
+      {/* Warning banner when comparing user porra */}
+      {viewingUser && (
+        <div className="viewing-user-banner">
+          <div className="banner-content">
+            <span className="banner-icon">👀</span>
+            <span>
+              Viendo la porra de <strong>{viewingUser.full_name}</strong> ({viewingUser.points} pts) en modo lectura.
+            </span>
+          </div>
+          <button 
+            onClick={() => {
+              setViewingUser(null);
+              setActiveTab("leaderboard");
+            }} 
+            className="btn-back-to-own"
+          >
+            ⬅️ Volver a mi porra
+          </button>
+        </div>
+      )}
+
       {/* Control Panel Toolbar */}
-      <div className="glass-panel control-toolbar" style={{ margin: "1rem 2rem", padding: "0.75rem 1.5rem", borderRadius: "12px", display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center" }}>
-        <span style={{ fontWeight: 600, color: "var(--accent)" }}>🛠️ Herramientas de Prueba:</span>
-        <button onClick={handleSimulateMyPredictions} className="btn-save-pred" style={{ background: "rgba(139, 92, 246, 0.2)", color: "#c084fc", border: "1px solid rgba(139, 92, 246, 0.4)" }}>
-          🎲 Simular mis Pronósticos
-        </button>
-        <button onClick={handleResetMyPredictions} className="btn-save-pred" style={{ background: "rgba(139, 92, 246, 0.1)", color: "#e9d5ff", border: "1px solid rgba(139, 92, 246, 0.2)" }} disabled={isSimulatingAll}>
-          🧹 Resetear mis Pronósticos
-        </button>
-        <button onClick={handleSimulateRealScores} className="btn-save-pred" style={{ background: "rgba(239, 68, 68, 0.2)", color: "#f87171", border: "1px solid rgba(239, 68, 68, 0.4)" }} disabled={isSimulatingAll}>
-          {isSimulatingAll ? "Simulando..." : "🎲 Simular Resultados Reales (Admin)"}
-        </button>
-        <button onClick={handleResetRealScores} className="btn-save-pred" style={{ background: "rgba(239, 68, 68, 0.1)", color: "#fecaca", border: "1px solid rgba(239, 68, 68, 0.2)" }} disabled={isSimulatingAll}>
-          🧹 Resetear Resultados Reales (Admin)
-        </button>
-      </div>
+      {!viewingUser && (
+        <div className="glass-panel control-toolbar" style={{ margin: "1rem 2rem", padding: "0.75rem 1.5rem", borderRadius: "12px", display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center" }}>
+          <span style={{ fontWeight: 600, color: "var(--accent)" }}>🛠️ Herramientas de Prueba:</span>
+          <button onClick={handleSimulateMyPredictions} className="btn-save-pred" style={{ background: "rgba(139, 92, 246, 0.2)", color: "#c084fc", border: "1px solid rgba(139, 92, 246, 0.4)" }}>
+            🎲 Simular mis Pronósticos
+          </button>
+          <button onClick={handleResetMyPredictions} className="btn-save-pred" style={{ background: "rgba(139, 92, 246, 0.1)", color: "#e9d5ff", border: "1px solid rgba(139, 92, 246, 0.2)" }} disabled={isSimulatingAll}>
+            🧹 Resetear mis Pronósticos
+          </button>
+          <button onClick={handleSimulateRealScores} className="btn-save-pred" style={{ background: "rgba(239, 68, 68, 0.2)", color: "#f87171", border: "1px solid rgba(239, 68, 68, 0.4)" }} disabled={isSimulatingAll}>
+            {isSimulatingAll ? "Simulando..." : "🎲 Simular Resultados Reales (Admin)"}
+          </button>
+          <button onClick={handleResetRealScores} className="btn-save-pred" style={{ background: "rgba(239, 68, 68, 0.1)", color: "#fecaca", border: "1px solid rgba(239, 68, 68, 0.2)" }} disabled={isSimulatingAll}>
+            🧹 Resetear Resultados Reales (Admin)
+          </button>
+        </div>
+      )}
 
       {/* Tabs Navigation */}
       <nav className="tab-nav">
@@ -1502,8 +1290,19 @@ function App() {
       </nav>
 
       {/* Main Tab Content */}
-      <main style={{ flex: 1, padding: "0 2rem 2rem 2rem" }}>
-        {loading && activeTab !== "matches" ? (
+      <main 
+        className={viewingUser ? "viewing-mode-gray" : ""}
+        style={{ flex: 1, padding: "0 2rem 2rem 2rem" }}
+      >
+        {viewedUserLoading ? (
+          <div style={{ textAlign: "center", padding: "3rem" }}>
+            <h2>Cargando pronósticos de {viewingUser?.full_name}...</h2>
+          </div>
+        ) : viewedUserError ? (
+          <div className="error-message" style={{ margin: "2rem" }}>
+            {viewedUserError}
+          </div>
+        ) : loading && activeTab !== "matches" ? (
           <div style={{ textAlign: "center", padding: "3rem" }}>
             <h2>Cargando contenido...</h2>
           </div>
@@ -1628,8 +1427,9 @@ function App() {
                 <select
                   className="premium-input"
                   style={{ background: "#2e3b4e", color: "#ffffff", border: "1px solid rgba(255,255,255,0.15)", cursor: "pointer" }}
-                  value={tournamentPredictions.champion || ""}
+                  value={displayTournamentPredictions.champion || ""}
                   onChange={(e) => setTournamentPredictions(prev => ({ ...prev, champion: e.target.value || null }))}
+                  disabled={!!viewingUser}
                 >
                   <option value="">-- Elige un país --</option>
                   {ALL_TEAMS_ES.map(team => (
@@ -1643,8 +1443,9 @@ function App() {
                 <select
                   className="premium-input"
                   style={{ cursor: "pointer" }}
-                  value={tournamentPredictions.runner_up || ""}
+                  value={displayTournamentPredictions.runner_up || ""}
                   onChange={(e) => setTournamentPredictions(prev => ({ ...prev, runner_up: e.target.value || null }))}
+                  disabled={!!viewingUser}
                 >
                   <option value="">-- Elige un país --</option>
                   {ALL_TEAMS_ES.map(team => (
@@ -1658,8 +1459,9 @@ function App() {
                 <select
                   className="premium-input"
                   style={{ cursor: "pointer" }}
-                  value={tournamentPredictions.top_scorer || ""}
+                  value={displayTournamentPredictions.top_scorer || ""}
                   onChange={(e) => setTournamentPredictions(prev => ({ ...prev, top_scorer: e.target.value || null }))}
+                  disabled={!!viewingUser}
                 >
                   <option value="">-- Elige un jugador --</option>
                   {ALL_FORWARDS.map(player => (
@@ -1673,8 +1475,9 @@ function App() {
                 <select
                   className="premium-input"
                   style={{ cursor: "pointer" }}
-                  value={tournamentPredictions.best_goalkeeper || ""}
+                  value={displayTournamentPredictions.best_goalkeeper || ""}
                   onChange={(e) => setTournamentPredictions(prev => ({ ...prev, best_goalkeeper: e.target.value || null }))}
+                  disabled={!!viewingUser}
                 >
                   <option value="">-- Elige un portero --</option>
                   {ALL_GOALKEEPERS.map(gk => (
@@ -1688,8 +1491,9 @@ function App() {
                 <select
                   className="premium-input"
                   style={{ cursor: "pointer" }}
-                  value={tournamentPredictions.surprise_team || ""}
+                  value={displayTournamentPredictions.surprise_team || ""}
                   onChange={(e) => setTournamentPredictions(prev => ({ ...prev, surprise_team: e.target.value || null }))}
+                  disabled={!!viewingUser}
                 >
                   <option value="">-- Elige un país --</option>
                   {ALL_TEAMS_ES.map(team => (
@@ -1698,13 +1502,15 @@ function App() {
                 </select>
               </div>
 
-              <button
-                onClick={handleSaveTournamentPredictions}
-                className="premium-button"
-                disabled={savingTournament}
-              >
-                {savingTournament ? "Guardando apuestas..." : "💾 Guardar Apuestas Especiales"}
-              </button>
+              {!viewingUser && (
+                <button
+                  onClick={handleSaveTournamentPredictions}
+                  className="premium-button"
+                  disabled={savingTournament}
+                >
+                  {savingTournament ? "Guardando apuestas..." : "💾 Guardar Apuestas Especiales"}
+                </button>
+              )}
             </div>
           </div>
         ) : activeTab === "leaderboard" ? (
@@ -1723,7 +1529,14 @@ function App() {
             {leaderboard.length > 0 && (
               <div className="podium">
                 {leaderboard.length >= 2 && (
-                  <div className="podium-step podium-2 clickable-step" onClick={() => openUserPredictionsModal(leaderboard[1])}>
+                  <div 
+                    className="podium-step podium-2 clickable-step" 
+                    onClick={() => {
+                      if (leaderboard[1].telegram_id !== user.telegram_id) {
+                        handleViewUserDashboard(leaderboard[1]);
+                      }
+                    }}
+                  >
                     <div className="podium-user">
                       <div className="podium-medal">🥈</div>
                       <div className="podium-name">{leaderboard[1].full_name}</div>
@@ -1733,7 +1546,14 @@ function App() {
                   </div>
                 )}
 
-                <div className="podium-step podium-1 clickable-step" onClick={() => openUserPredictionsModal(leaderboard[0])}>
+                <div 
+                  className="podium-step podium-1 clickable-step" 
+                  onClick={() => {
+                    if (leaderboard[0].telegram_id !== user.telegram_id) {
+                      handleViewUserDashboard(leaderboard[0]);
+                    }
+                  }}
+                >
                   <div className="podium-user">
                     <div className="podium-medal">🥇</div>
                     <div className="podium-name">{leaderboard[0].full_name}</div>
@@ -1743,7 +1563,14 @@ function App() {
                 </div>
 
                 {leaderboard.length >= 3 && (
-                  <div className="podium-step podium-3 clickable-step" onClick={() => openUserPredictionsModal(leaderboard[2])}>
+                  <div 
+                    className="podium-step podium-3 clickable-step" 
+                    onClick={() => {
+                      if (leaderboard[2].telegram_id !== user.telegram_id) {
+                        handleViewUserDashboard(leaderboard[2]);
+                      }
+                    }}
+                  >
                     <div className="podium-user">
                       <div className="podium-medal">🥉</div>
                       <div className="podium-name">{leaderboard[2].full_name}</div>
@@ -1768,7 +1595,15 @@ function App() {
                   {leaderboard.map((u, index) => {
                     const isSelf = u.telegram_id === user.telegram_id;
                     return (
-                      <tr key={u.id} className={`${isSelf ? "current-user" : ""} clickable-row`} onClick={() => openUserPredictionsModal(u)}>
+                      <tr 
+                        key={u.id} 
+                        className={`${isSelf ? "current-user" : ""} clickable-row`} 
+                        onClick={() => {
+                          if (!isSelf) {
+                            handleViewUserDashboard(u);
+                          }
+                        }}
+                      >
                         <td className="rank-cell">#{index + 1}</td>
                         <td>
                           {u.full_name}
@@ -1851,237 +1686,6 @@ function App() {
       </main>
 
       {/* Modal Overlay for viewing other users' predictions */}
-      {selectedUserForModal && (
-        <div className="modal-overlay" onClick={() => setSelectedUserForModal(null)}>
-          <div className="modal-content glass-panel" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close-btn" onClick={() => setSelectedUserForModal(null)} aria-label="Cerrar modal">
-              &times;
-            </button>
-            
-            <div className="modal-header">
-              <h2 className="modal-title">
-                👤 Pronósticos de {selectedUserForModal.full_name}
-              </h2>
-              <p className="modal-subtitle">
-                {selectedUserForModal.username ? `@${selectedUserForModal.username}` : "Participante"} &bull; <strong>{selectedUserForModal.points} puntos</strong> acumulados
-              </p>
-            </div>
-
-            <div className="modal-tabs">
-              <button
-                className={`modal-tab-btn ${modalTab === "sidebets" ? "active" : ""}`}
-                onClick={() => setModalTab("sidebets")}
-              >
-                🎯 Especiales (Side-bets)
-              </button>
-              <button
-                className={`modal-tab-btn ${modalTab === "groups" ? "active" : ""}`}
-                onClick={() => setModalTab("groups")}
-              >
-                ⚽ Fase de Grupos
-              </button>
-              <button
-                className={`modal-tab-btn ${modalTab === "finals" ? "active" : ""}`}
-                onClick={() => setModalTab("finals")}
-              >
-                📊 Fase Final (Cuadro)
-              </button>
-            </div>
-
-            <div style={{ flex: 1, minHeight: "200px" }}>
-              {modalLoading ? (
-                <div style={{ textAlign: "center", padding: "3rem" }}>
-                  <h3>Cargando pronósticos...</h3>
-                </div>
-              ) : modalError ? (
-                <div className="error-message">
-                  {modalError}
-                </div>
-              ) : modalTab === "sidebets" ? (
-                // Modal Tab: Tournament Specials
-                <div className="modal-sidebets-grid">
-                  <div className="modal-sidebet-card">
-                    <span className="modal-sidebet-label">🏆 Campeón</span>
-                    <span className="modal-sidebet-value">
-                      {modalTournament?.champion ? modalTournament.champion : <span className="modal-sidebet-empty">Sin pronóstico</span>}
-                    </span>
-                  </div>
-                  <div className="modal-sidebet-card">
-                    <span className="modal-sidebet-label">🥈 Subcampeón</span>
-                    <span className="modal-sidebet-value">
-                      {modalTournament?.runner_up ? modalTournament.runner_up : <span className="modal-sidebet-empty">Sin pronóstico</span>}
-                    </span>
-                  </div>
-                  <div className="modal-sidebet-card">
-                    <span className="modal-sidebet-label">🔥 Máximo Goleador</span>
-                    <span className="modal-sidebet-value">
-                      {modalTournament?.top_scorer ? modalTournament.top_scorer : <span className="modal-sidebet-empty">Sin pronóstico</span>}
-                    </span>
-                  </div>
-                  <div className="modal-sidebet-card">
-                    <span className="modal-sidebet-label">🧤 Guante de Oro</span>
-                    <span className="modal-sidebet-value">
-                      {modalTournament?.best_goalkeeper ? modalTournament.best_goalkeeper : <span className="modal-sidebet-empty">Sin pronóstico</span>}
-                    </span>
-                  </div>
-                  <div className="modal-sidebet-card">
-                    <span className="modal-sidebet-label">⭐ Equipo Revelación</span>
-                    <span className="modal-sidebet-value">
-                      {modalTournament?.surprise_team ? modalTournament.surprise_team : <span className="modal-sidebet-empty">Sin pronóstico</span>}
-                    </span>
-                  </div>
-                </div>
-              ) : modalTab === "groups" ? (
-                // Modal Tab: Group Stage Predictions
-                <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-                  {(() => {
-                    // Group matches by group stage
-                    const grouped: Record<string, Match[]> = {};
-                    matches.forEach((m) => {
-                      if (m.stage === "group" && m.group) {
-                        if (!grouped[m.group]) grouped[m.group] = [];
-                        grouped[m.group].push(m);
-                      }
-                    });
-                    return Object.entries(grouped)
-                      .sort((a, b) => a[0].localeCompare(b[0]))
-                      .map(([gName, mList]) => (
-                        <div key={gName} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                          <h3 style={{ fontSize: "1rem", color: "var(--accent)", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "0.25rem", margin: 0 }}>
-                            Grupo {gName}
-                          </h3>
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "0.75rem" }}>
-                            {mList.map((m) => {
-                              const pred = modalPredictions[m.id];
-                              const homeFlag = getFlagEmoji(m.home_team);
-                              const awayFlag = getFlagEmoji(m.away_team);
-                              const isFinished = m.home_score !== null && m.away_score !== null;
-                              
-                              return (
-                                <div key={m.id} className="glass-panel" style={{ padding: "0.75rem 1rem", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.9rem" }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flex: 1, flexWrap: "wrap" }}>
-                                    <span style={{ fontSize: "0.8rem", opacity: 0.6 }}>🕒 {formatDate(m.date)}</span>
-                                    <span style={{ fontWeight: 600 }}>{homeFlag} {m.home_team}</span>
-                                    <span style={{ opacity: 0.5 }}>vs</span>
-                                    <span style={{ fontWeight: 600 }}>{awayFlag} {m.away_team}</span>
-                                  </div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap" }}>
-                                    {isFinished && (
-                                      <div style={{ opacity: 0.7, fontSize: "0.85rem", background: "rgba(255,255,255,0.03)", padding: "0.15rem 0.5rem", borderRadius: "4px" }}>
-                                        Real: <strong>{m.home_score} - {m.away_score}</strong>
-                                      </div>
-                                    )}
-                                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                                      <span style={{ opacity: 0.6, fontSize: "0.8rem" }}>Pronóstico:</span>
-                                      {pred ? (
-                                        <span style={{ fontWeight: 700, color: "var(--accent)" }}>
-                                          {pred.home_score} - {pred.away_score}
-                                        </span>
-                                      ) : (
-                                        <span style={{ opacity: 0.4, fontStyle: "italic" }}>Sin pronóstico</span>
-                                      )}
-                                    </div>
-                                    {isFinished && pred && (
-                                      <span className={`points-badge points-${pred.points_earned}`}>
-                                        +{pred.points_earned} pts
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ));
-                  })()}
-                </div>
-              ) : (
-                // Modal Tab: Knockout Bracket Matches list in read-only
-                <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-                  {(() => {
-                    const koMatchIds = [74, 77, 73, 75, 83, 84, 81, 82, 76, 78, 79, 80, 86, 88, 85, 87, 89, 90, 93, 94, 91, 92, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104];
-                    const labelsEs: Record<string, string> = {
-                      r32: "Dieciseisavos de Final (1/16)",
-                      r16: "Octavos de Final (1/8)",
-                      qf: "Cuartos de Final (1/4)",
-                      sf: "Semifinal",
-                      third: "Tercer Puesto",
-                      final: "Gran Final",
-                    };
-                    // Group by stage label
-                    const stagesGrouped: Record<string, Match[]> = {};
-                    koMatchIds.forEach((mId) => {
-                      const m = matches.find((x) => x.id === mId);
-                      if (m && m.stage) {
-                        const stageLabel = labelsEs[m.stage] || m.stage;
-                        if (!stagesGrouped[stageLabel]) stagesGrouped[stageLabel] = [];
-                        stagesGrouped[stageLabel].push(m);
-                      }
-                    });
-
-                    return Object.entries(stagesGrouped).map(([stageName, mList]) => (
-                      <div key={stageName} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                        <h3 style={{ fontSize: "1rem", color: "var(--accent)", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "0.25rem", margin: 0 }}>
-                          {stageName}
-                        </h3>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "0.75rem" }}>
-                          {mList.map((m) => {
-                            const pred = modalPredictions[m.id];
-                            const homeResolved = modalResolvedBracket[m.id]?.home || m.home_team;
-                            const awayResolved = modalResolvedBracket[m.id]?.away || m.away_team;
-                            
-                            const homeFlag = getFlagEmoji(homeResolved);
-                            const awayFlag = getFlagEmoji(awayResolved);
-                            const isFinished = m.home_score !== null && m.away_score !== null;
-                            
-                            return (
-                              <div key={m.id} className="glass-panel" style={{ padding: "0.75rem 1rem", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.9rem" }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flex: 1, flexWrap: "wrap" }}>
-                                  <span style={{ fontSize: "0.8rem", opacity: 0.6 }}>Partido #{m.id}</span>
-                                  <span style={{ fontWeight: 600 }}>{homeFlag} {homeResolved}</span>
-                                  <span style={{ opacity: 0.5 }}>vs</span>
-                                  <span style={{ fontWeight: 600 }}>{awayFlag} {awayResolved}</span>
-                                  {pred?.penalty_winner_home !== null && pred?.penalty_winner_home !== undefined && (
-                                    <span style={{ fontSize: "0.75rem", color: "var(--success)", border: "1px dashed var(--success)", padding: "0.1rem 0.3rem", borderRadius: "4px", fontWeight: "bold" }}>
-                                      Penaltis: {pred.penalty_winner_home ? homeResolved : awayResolved}
-                                    </span>
-                                  )}
-                                </div>
-                                <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap" }}>
-                                  {isFinished && (
-                                    <div style={{ opacity: 0.7, fontSize: "0.85rem", background: "rgba(255,255,255,0.03)", padding: "0.15rem 0.5rem", borderRadius: "4px" }}>
-                                      Real: <strong>{m.home_score} - {m.away_score}</strong>
-                                    </div>
-                                  )}
-                                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                                    <span style={{ opacity: 0.6, fontSize: "0.8rem" }}>Pronóstico:</span>
-                                    {pred ? (
-                                      <span style={{ fontWeight: 700, color: "var(--accent)" }}>
-                                        {pred.home_score} - {pred.away_score}
-                                      </span>
-                                    ) : (
-                                      <span style={{ opacity: 0.4, fontStyle: "italic" }}>Sin pronóstico</span>
-                                    )}
-                                  </div>
-                                  {isFinished && pred && (
-                                    <span className={`points-badge points-${pred.points_earned}`}>
-                                      +{pred.points_earned} pts
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
