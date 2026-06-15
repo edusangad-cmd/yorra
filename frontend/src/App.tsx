@@ -543,7 +543,6 @@ function App() {
     });
 
     const allGroupsResolved = resolvedGroups.size === allGroups.size;
-    const qualified3rdGroups = allGroupsResolved ? new Set(sorted3rd.slice(0, 8).map((x) => x.group)) : new Set<string>();
     const resolved: Record<number, { home: string; away: string }> = {};
 
     matches.forEach((m) => {
