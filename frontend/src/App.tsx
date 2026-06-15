@@ -377,7 +377,7 @@ function App() {
     const modifiedMatchIds = matches.filter((m) => {
       const matchDateObj = new Date(m.date);
       const isStarted = matchDateObj <= new Date();
-      const hasFinished = m.home_score !== null && m.away_score !== null;
+      const hasFinished = m.status === "FT";
       if (isStarted || hasFinished) return false;
 
       const draft = editingScores[m.id];
@@ -441,7 +441,7 @@ function App() {
     matches.forEach((m) => {
       const matchDateObj = new Date(m.date);
       const isStarted = matchDateObj <= new Date();
-      const hasFinished = m.home_score !== null && m.away_score !== null;
+      const hasFinished = m.status === "FT";
 
       if (!isStarted && !hasFinished) {
         const randomHome = String(Math.floor(Math.random() * 4));
@@ -537,7 +537,7 @@ function App() {
 
         const pred = activePredictions[m.id];
         const draft = viewingUser ? null : editingScores[m.id];
-        if (m.home_score !== null && m.away_score !== null) {
+        if (m.status === "FT" && m.home_score !== null && m.away_score !== null) {
           homeGoals = m.home_score;
           awayGoals = m.away_score;
         } else if (draft && draft.home !== "" && draft.away !== "") {
@@ -591,7 +591,7 @@ function App() {
     allGroups.forEach((g) => {
       const groupMatches = matches.filter(m => m.stage === "group" && m.group === g);
       const isFilled = groupMatches.every((m) => {
-        const hasReal = m.home_score !== null && m.away_score !== null;
+        const hasReal = m.status === "FT" && m.home_score !== null && m.away_score !== null;
         const hasPred = predictions[m.id] !== undefined;
         const hasDraft = editingScores[m.id] && editingScores[m.id].home !== "" && editingScores[m.id].away !== "";
         return hasReal || hasPred || hasDraft;
@@ -645,7 +645,7 @@ function App() {
       const m = matches.find((x) => x.id === matchId);
       if (!m) return `Ganador Partido ${matchId}`;
 
-      if (m.home_score !== null && m.away_score !== null) {
+      if (m.status === "FT" && m.home_score !== null && m.away_score !== null) {
         if (m.home_score > m.away_score) return m.home_team;
         if (m.home_score < m.away_score) return m.away_team;
         return m.home_team;
@@ -693,7 +693,7 @@ function App() {
       const m = matches.find((x) => x.id === matchId);
       if (!m) return `Perdedor Partido ${matchId}`;
 
-      if (m.home_score !== null && m.away_score !== null) {
+      if (m.status === "FT" && m.home_score !== null && m.away_score !== null) {
         if (m.home_score > m.away_score) return m.away_team;
         if (m.home_score < m.away_score) return m.home_team;
         return m.away_team;
@@ -840,7 +840,7 @@ function App() {
 
     const matchDateObj = new Date(m.date);
     const isStarted = matchDateObj <= new Date();
-    const hasFinished = m.home_score !== null && m.away_score !== null;
+    const hasFinished = m.status === "FT";
 
     const homeResolved = resolvedBracket[m.id]?.home || m.home_team;
     const awayResolved = resolvedBracket[m.id]?.away || m.away_team;
@@ -907,7 +907,7 @@ function App() {
               <span className="name-text" style={{ fontWeight: isTie && penaltyWinnerHome ? "bold" : "normal" }}>{homeResolved}</span>
               {isTie && penaltyWinnerHome && <span className="penalty-badge">🎯 Pen</span>}
             </span>
-            {hasFinished ? (
+            {m.home_score !== null && m.away_score !== null ? (
               <span className="bracket-score">{m.home_score}</span>
             ) : (
               <input
@@ -934,7 +934,7 @@ function App() {
               <span className="name-text" style={{ fontWeight: isTie && !penaltyWinnerHome ? "bold" : "normal" }}>{awayResolved}</span>
               {isTie && !penaltyWinnerHome && <span className="penalty-badge">🎯 Pen</span>}
             </span>
-            {hasFinished ? (
+            {m.home_score !== null && m.away_score !== null ? (
               <span className="bracket-score">{m.away_score}</span>
             ) : (
               <input
@@ -981,7 +981,7 @@ function App() {
 
     const matchDateObj = new Date(m.date);
     const isStarted = matchDateObj <= new Date();
-    const hasFinished = m.home_score !== null && m.away_score !== null;
+    const hasFinished = m.status === "FT";
 
     // Resolve dynamic team names from bracket calculations
     const homeResolved = resolvedBracket[m.id]?.home || m.home_team;
@@ -1030,7 +1030,7 @@ function App() {
           </div>
 
           <div className="score-center">
-            {hasFinished ? (
+            {m.home_score !== null && m.away_score !== null ? (
               <div className="real-score">
                 {m.home_score} - {m.away_score}
               </div>

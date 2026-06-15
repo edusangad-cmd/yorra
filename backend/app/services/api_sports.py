@@ -109,7 +109,11 @@ class APISportsClient:
 
             mapped_fixtures = []
             for g in games:
-                finished = g.get("finished") == "TRUE"
+                finished = (
+                    str(g.get("finished")).strip().upper() == "TRUE"
+                    or g.get("finished") is True
+                    or g.get("time_elapsed") == "finished"
+                )
                 time_elapsed = g.get("time_elapsed")
 
                 status_short = "FT" if finished else ("NS" if time_elapsed == "notstarted" else "1H")

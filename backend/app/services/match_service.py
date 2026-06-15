@@ -352,7 +352,7 @@ class MatchService:
                 )
                 db.add(db_match)
 
-            if score_changed and home_score is not None and away_score is not None:
+            if score_changed and status == "FT" and home_score is not None and away_score is not None:
                 # Recalculate points for predictions on this match
                 pred_result = await db.execute(
                     select(Prediction).where(Prediction.match_id == match_id)
@@ -388,7 +388,7 @@ class MatchService:
         matches_map = {m.id: m for m in matches}
 
         # Resolve the real tournament bracket
-        real_scores = {m.id: (m.home_score, m.away_score) for m in matches}
+        real_scores = {m.id: (m.home_score if m.status == "FT" else None, m.away_score if m.status == "FT" else None) for m in matches}
         real_resolved = resolve_bracket_teams(matches, real_scores, {})
 
         def get_teams_for_matches(resolved_dict: dict[int, dict[str, str]], match_ids: Iterable[int]) -> set[str]:
@@ -414,7 +414,7 @@ class MatchService:
         real_champion = None
         real_runner_up = None
         m104 = next((x for x in matches if x.id == 104), None)
-        if m104 and m104.home_score is not None and m104.away_score is not None:
+        if m104 and m104.status == "FT" and m104.home_score is not None and m104.away_score is not None:
             m104_teams = real_resolved.get(104, {})
             h = m104_teams.get("home")
             a = m104_teams.get("away")
@@ -448,7 +448,7 @@ class MatchService:
             match_points = 0
             for p in preds:
                 m = matches_map.get(p.match_id)
-                if m and m.home_score is not None and m.away_score is not None:
+                if m and m.status == "FT" and m.home_score is not None and m.away_score is not None:
                     p.points_earned = calculate_points(
                         p.home_score, p.away_score, m.home_score, m.away_score
                     )
