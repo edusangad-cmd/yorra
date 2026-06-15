@@ -43,10 +43,17 @@ class AISummaryService:
         user_names = {}
 
         for match in matches:
-            status_desc = "Finalizado" if match.status == "FT" else "No finalizado"
-            score_desc = f"{match.home_score}-{match.away_score}" if match.home_score is not None else "Sin jugar"
+            if match.status == "FT":
+                status_desc = "FINALIZADO"
+                score_desc = f"{match.home_score}-{match.away_score}"
+            elif match.status == "NS":
+                status_desc = "NO EMPEZADO"
+                score_desc = "Sin jugar"
+            else:
+                status_desc = "EN JUEGO"
+                score_desc = f"{match.home_score}-{match.away_score} (provisional)"
             
-            match_info = f"Partido: {match.home_team} vs {match.away_team} | Resultado Real: {score_desc} ({status_desc})"
+            match_info = f"Partido: {match.home_team} vs {match.away_team} | Estado: {status_desc} | Marcador Real/Actual: {score_desc}"
             prediction_lines = []
 
             # Get predictions for this match
@@ -56,11 +63,21 @@ class AISummaryService:
 
             for pred, user in predictions_with_users:
                 user_names[user.id] = user.full_name
-                user_scores_today[user.id] = user_scores_today.get(user.id, 0) + pred.points_earned
                 
                 pred_desc = f"{pred.home_score}-{pred.away_score}"
-                points_desc = f"+{pred.points_earned} pts"
-                prediction_lines.append(f"  - {user.full_name}: pronosticó {pred_desc} -> ganó {points_desc}")
+                if match.status == "FT":
+                    user_scores_today[user.id] = user_scores_today.get(user.id, 0) + pred.points_earned
+                    points_desc = f"+{pred.points_earned} pts (DEFINITIVOS)"
+                elif match.status == "NS":
+                    points_desc = "0 pts (Aún no jugado)"
+                else:
+                    from app.services.match_service import calculate_points
+                    h_score = match.home_score if match.home_score is not None else 0
+                    a_score = match.away_score if match.away_score is not None else 0
+                    prov_points = calculate_points(pred.home_score, pred.away_score, h_score, a_score)
+                    points_desc = f"+{prov_points} pts (PROVISIONALES con el marcador actual)"
+                
+                prediction_lines.append(f"  - {user.full_name}: pronosticó {pred_desc} -> {points_desc}")
             
             if not prediction_lines:
                 prediction_lines.append("  - Nadie hizo predicciones para este partido.")
@@ -72,9 +89,9 @@ class AISummaryService:
         if user_scores_today:
             sorted_users = sorted(user_scores_today.items(), key=lambda x: x[1], reverse=True)
             for uid, pts in sorted_users:
-                rankings_today.append(f"{user_names[uid]}: +{pts} puntos hoy")
+                rankings_today.append(f"{user_names[uid]}: +{pts} puntos hoy (solo de partidos finalizados)")
         else:
-            rankings_today.append("Nadie ha sumado puntos hoy.")
+            rankings_today.append("Nadie ha sumado puntos definitivos hoy.")
 
         # Build prompt
         prompt = (
@@ -84,12 +101,14 @@ class AISummaryService:
             f"Escribe una crónica diaria detallada para el día {summary_date} basada en los siguientes datos:\n\n"
             "PARTIDOS Y PRONÓSTICOS DE HOY:\n"
             + "\n\n".join(match_reports)
-            + "\n\nPUNTUACIÓN TOTAL DEL DÍA:\n"
+            + "\n\nPUNTUACIÓN TOTAL DEFINITIVA DEL DÍA (solo de partidos finalizados):\n"
             + "\n".join(rankings_today)
             + "\n\nInstrucciones:\n"
-            "1. Comenta cómo fue la jornada, resalta quién acertó el marcador exacto y ganó más puntos.\n"
-            "2. Búrlate con cariño de los que fallaron por completo (por ejemplo, pronosticar una goleada salvaje y que queden 0-0).\n"
-            "3. Explica brevemente por qué el ganador del día obtuvo más puntos (si acertó el resultado exacto o solo el ganador/empate).\n"
+            "1. REGLA CRÍTICA: Distingue claramente entre partidos FINALIZADOS, EN JUEGO y NO EMPEZADOS.\n"
+            "   - Para partidos FINALIZADOS: Comenta el resultado definitivo, destaca quién acertó el marcador exacto y ganó puntos.\n"
+            "   - Para partidos EN JUEGO o NO EMPEZADOS: Habla de ellos en futuro o de forma condicional/indefinida. NUNCA los comentes como si ya hubieran terminado. Por ejemplo, di cosas como: 'Edu va ganando porque ha acertado Brasil-Costa Rica, pero todo puede cambiar si Uganda gana a México porque Gonzalo podría igualarlo' o 'Si fulanito mantiene su suerte...'.\n"
+            "2. Búrlate con cariño de los que fallaron por completo en los partidos FINALIZADOS (por ejemplo, pronosticar una goleada salvaje y que queden 0-0).\n"
+            "3. Explica brevemente por qué el ganador del día obtuvo más puntos definitivos (si acertó el resultado exacto o solo el ganador/empate).\n"
             "4. Escribe en español de España de manera natural y cercana, usando jerga futbolera divertida.\n"
             "5. Mantén el resumen dinámico, no demasiado largo (2-3 párrafos interesantes)."
         )
@@ -137,7 +156,15 @@ class AISummaryService:
     @staticmethod
     def _generate_fallback_summary(matches: Sequence[Match], rankings_today: list[str]) -> str:
         """Generates a nice, dynamic mock summary so that the app behaves beautifully without an API key."""
-        matches_summary = ", ".join([f"{m.home_team} {m.home_score}-{m.away_score} {m.away_team}" for m in matches])
+        matches_parts = []
+        for m in matches:
+            if m.status == "FT":
+                matches_parts.append(f"{m.home_team} {m.home_score}-{m.away_score} {m.away_team} (Finalizado)")
+            elif m.status == "NS":
+                matches_parts.append(f"{m.home_team} vs {m.away_team} (No empezado)")
+            else:
+                matches_parts.append(f"{m.home_team} {m.home_score}-{m.away_score} {m.away_team} (En juego)")
+        matches_summary = ", ".join(matches_parts)
         rankings_summary = ", ".join(rankings_today)
         
         return (
