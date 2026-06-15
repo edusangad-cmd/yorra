@@ -9,7 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.telegram import ROAST_TEMPLATES
 from app.db.session import get_session
-from app.models.models import Match, Prediction, TournamentPrediction, User
+from app.models.models import DailySummary, Match, Prediction, TournamentPrediction, User
+from app.services.ai_summary_service import AISummaryService
 from app.services.match_service import MatchService, calculate_points
 
 router = APIRouter(prefix="/api", tags=["api"])
@@ -479,4 +480,50 @@ async def get_user_predictions(
             "surprise_team": tour_pred.surprise_team,
         } if tour_pred else None,
     }
+
+
+@router.get("/daily-summaries")
+async def get_daily_summaries(
+    db: AsyncSession = Depends(get_session),
+) -> list[dict[str, Any]]:
+    # Retrieve all daily summaries ordered by date descending
+    result = await db.execute(
+        select(DailySummary).order_by(desc(DailySummary.summary_date))
+    )
+    summaries = result.scalars().all()
+    return [
+        {
+            "id": s.id,
+            "summary_date": s.summary_date,
+            "content": s.content,
+            "created_at": s.created_at.isoformat() + "Z",
+        }
+        for s in summaries
+    ]
+
+
+class GenerateSummaryRequest(BaseModel):
+    date: str  # Format: YYYY-MM-DD
+
+
+@router.post("/daily-summaries/generate")
+async def generate_daily_summary(
+    payload: GenerateSummaryRequest,
+    db: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    try:
+        summary = await AISummaryService.generate_daily_summary(db, payload.date)
+        return {
+            "id": summary.id,
+            "summary_date": summary.summary_date,
+            "content": summary.content,
+            "created_at": summary.created_at.isoformat() + "Z",
+            "success": True,
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Error al generar el resumen: {str(e)}"
+        ) from e
+
 
