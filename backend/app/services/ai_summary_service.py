@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Sequence
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from typing import cast
 
 import httpx
@@ -32,6 +32,21 @@ class AISummaryService:
         match_query = select(Match).where(Match.date >= start_dt, Match.date <= end_dt)  # type: ignore[arg-type]
         match_result = await db.execute(match_query)
         matches = match_result.scalars().all()
+
+        # Query matches from the previous day that are now finalized (FT)
+        yesterday_date = target_date - timedelta(days=1)
+        start_yesterday = datetime.combine(yesterday_date, time.min)
+        end_yesterday = datetime.combine(yesterday_date, time.max)
+        yesterday_query = select(Match).where(
+            Match.date >= start_yesterday,
+            Match.date <= end_yesterday,
+            Match.status == "FT"
+        )  # type: ignore[arg-type]
+        yesterday_result = await db.execute(yesterday_query)
+        pending_matches = yesterday_result.scalars().all()
+        pending_reports = []
+        for pm in pending_matches:
+            pending_reports.append(f"Resultado pendiente del día anterior: {pm.home_team} {pm.home_score}-{pm.away_score} {pm.away_team} (FINALIZADO)")
 
         if not matches:
             content = f"Hoy ({summary_date}) no se disputó ningún partido del Mundial. ¡Día de descanso y siesta para los participantes!"
@@ -99,6 +114,8 @@ class AISummaryService:
             "y competitivo (con piques sanos pero graciosos entre los participantes). Alguien que sabe mucho de fútbol "
             "y comenta la porra con humor, destacando aciertos heroicos y fallos catastróficos.\n\n"
             f"Escribe una crónica diaria para el día {summary_date} basada en los siguientes datos:\n\n"
+            # Include pending results from previous day if any
+            + ("\n".join(pending_reports) + "\n\n" if pending_reports else "")
             "PARTIDOS Y PRONÓSTICOS DE HOY:\n"
             + "\n\n".join(match_reports)
             + "\n\nPUNTUACIÓN TOTAL DEFINITIVA DEL DÍA (solo de partidos finalizados):\n"
