@@ -149,6 +149,9 @@ Instrucciones:
     @staticmethod
     async def _call_gemini_api(prompt: str, matches: Sequence[Match], rankings_today: list[str]) -> str:
         api_key = settings.GEMINI_API_KEY
+        if api_key:
+            api_key = api_key.strip().strip("'").strip('"')
+            
         if not api_key:
             logger.warning("GEMINI_API_KEY no está configurada. Usando fallback local humorístico.")
             return AISummaryService._generate_fallback_summary(matches, rankings_today)
@@ -172,14 +175,15 @@ Instrucciones:
                 else:
                     logger.error(f"Error llamando a Gemini API: {response.status_code} - {response.text}")
                     return (
-                        "⚠️ ¡La IA de la Porra se ha quedado sin cobertura en el estadio! "
-                        "El servidor de Gemini ha devuelto un error, pero te aseguramos que hoy ha habido emoción "
-                        "de la buena. ¡Mira la tabla general para ver cómo han quedado los puntos!"
+                        f"⚠️ ¡La IA de la Porra se ha quedado sin cobertura en el estadio! "
+                        f"El servidor de Gemini ha devuelto un error ({response.status_code}). "
+                        "¡Mira la tabla general para ver cómo han quedado los puntos!"
                     )
         except Exception as e:
             logger.exception("Excepción al conectar con la API de Gemini")
+            error_details = f"{type(e).__name__}: {str(e)}" if str(e) else f"{type(e).__name__}"
             return (
-                f"⚠️ Error de conexión al generar la crónica diaria: {str(e)}. "
+                f"⚠️ Error de conexión al generar la crónica diaria ({error_details}). "
                 "¡Por favor, comprueba tu conexión a internet o la configuración del archivo .env!"
             )
 
