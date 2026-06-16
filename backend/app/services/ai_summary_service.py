@@ -2,6 +2,7 @@ import logging
 from collections.abc import Sequence
 from datetime import datetime, time, timedelta
 from typing import cast
+from zoneinfo import ZoneInfo
 
 import httpx
 from sqlalchemy import select
@@ -25,8 +26,11 @@ class AISummaryService:
         except ValueError as e:
             raise ValueError("El formato de fecha debe ser YYYY-MM-DD") from e
 
-        start_dt = datetime.combine(target_date, time.min)
-        end_dt = datetime.combine(target_date, time.max)
+        madrid_tz = ZoneInfo("Europe/Madrid")
+        local_start = datetime.combine(target_date, time.min).replace(tzinfo=madrid_tz)
+        local_end = datetime.combine(target_date, time.max).replace(tzinfo=madrid_tz)
+        start_dt = local_start.astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
+        end_dt = local_end.astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
 
         # Get matches
         match_query = select(Match).where(Match.date >= start_dt, Match.date <= end_dt)  # type: ignore[arg-type]
@@ -35,8 +39,10 @@ class AISummaryService:
 
         # Query yesterday's summary and yesterday's matches/predictions for AI context (memory)
         yesterday_date = target_date - timedelta(days=1)
-        start_yesterday = datetime.combine(yesterday_date, time.min)
-        end_yesterday = datetime.combine(yesterday_date, time.max)
+        local_start_yesterday = datetime.combine(yesterday_date, time.min).replace(tzinfo=madrid_tz)
+        local_end_yesterday = datetime.combine(yesterday_date, time.max).replace(tzinfo=madrid_tz)
+        start_yesterday = local_start_yesterday.astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
+        end_yesterday = local_end_yesterday.astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
 
         # 1. Get yesterday's written summary text
         yesterday_summary_text = "No hay crónica registrada para el día anterior."
