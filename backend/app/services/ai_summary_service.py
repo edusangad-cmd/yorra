@@ -112,7 +112,7 @@ class AISummaryService:
         prompt = (
             "Eres el Cronista Oficial de la Porra del Mundial 2026. Tu estilo es ingenioso, divertido, futbolero "
             "y competitivo (con piques sanos pero graciosos entre los participantes). Alguien que sabe mucho de fútbol "
-            "y comenta la porra con humor, destacando aciertos heroicos y fallos catastróficos.\n\n"
+            "y comenta la porra con humor, destacando aciertos heroicos y fallos catastróficos.\n\n",
             f"Escribe una crónica diaria para el día {summary_date} basada en los siguientes datos:\n\n"
             # Include pending results from previous day if any
             + ("\n".join(pending_reports) + "\n\n" if pending_reports else "")
