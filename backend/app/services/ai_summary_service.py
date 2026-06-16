@@ -46,13 +46,24 @@ class AISummaryService:
         if yesterday_summary_obj:
             yesterday_summary_text = yesterday_summary_obj.content
 
-        # 2. Get all matches from yesterday with predictions and final points
+        # 2. Get matches from yesterday with predictions and final points (only if they were pending when yesterday's summary was created)
         yesterday_match_query = select(Match).where(Match.date >= start_yesterday, Match.date <= end_yesterday)  # type: ignore[arg-type]
         yesterday_match_result = await db.execute(yesterday_match_query)
         yesterday_matches = yesterday_match_result.scalars().all()
 
         yesterday_reports = []
         for pm in yesterday_matches:
+            # Only include yesterday's matches that were not finalized when the yesterday summary was generated
+            # or if there is no yesterday summary yet.
+            is_pending = True
+            if yesterday_summary_obj:
+                # If the match was updated after the summary was created, it was pending or in progress.
+                # If the match is still not finalized (not FT), it is also pending.
+                is_pending = pm.status != "FT" or pm.last_updated > yesterday_summary_obj.created_at
+
+            if not is_pending:
+                continue
+
             status_desc = "FINALIZADO" if pm.status == "FT" else pm.status
             score_desc = f"{pm.home_score}-{pm.away_score}" if pm.home_score is not None else "Sin jugar"
             match_info = f"Partido: {pm.home_team} vs {pm.away_team} | Estado: {status_desc} | Marcador Real Final: {score_desc}"
@@ -138,7 +149,7 @@ class AISummaryService:
             pending_section = (
                 "=== CRÓNICA DEL DÍA ANTERIOR (MEMORIA) ===\n"
                 f"{yesterday_summary_text}\n\n"
-                "=== PARTIDOS Y PRONÓSTICOS DE AYER (PARA VER CÓMO QUEDARON AL FINAL Y QUIÉN SUMÓ PUNTOS) ===\n"
+                "=== PARTIDOS Y PRONÓSTICOS DE AYER (SÓLO LOS QUE ESTABAN PENDIENTES DE FINALIZAR O SIN EMPEZAR) ===\n"
                 + "\n\n".join(yesterday_reports) + "\n\n"
             )
 
@@ -173,11 +184,12 @@ Instrucciones:
    - 'moros': cualquier equipo que sale a poner el cerrojazo.
 4. Escribe en español de España de manera natural, cercana y divertida.
 5. NO USES ASTERISCOS PARA DIFERENCIAR O DESTACAR NADA: es decir, que no se vean diferencias estilísticas dentro de la crónica sino un texto corrido y natural.
-6. MEMORIA Y REPASO DE PARTIDOS PENDIENTES:
+6. MEMORIA Y REPASO DE PARTIDOS PENDIENTES (OBLIGATORIO Y CON NOMBRES Y PUNTOS CONCRETOS):
    - Revisa la 'CRÓNICA DEL DÍA ANTERIOR'. Identifica de qué partidos de ayer se habló como provisionales ('EN JUEGO') o que aún no habían empezado ('NO EMPEZADOS' o comentados en futuro/condicional).
-   - Mira cómo quedaron finalmente ayer en 'PARTIDOS Y PRONÓSTICOS DE AYER' y quién sumó puntos definitivos.
-   - Comenta brevemente esos partidos y el resultado de los puntos al principio de la crónica de hoy (ej. 'Al final, en el Arabia-Uruguay de ayer Edu sumó 3 puntazos...').
-   - IMPORTANTE: No vuelvas a hablar ni a repetir comentarios de los partidos de ayer que YA estaban finalizados y comentados definitivamente en la crónica anterior. Céntrate únicamente en repasar lo que se había quedado pendiente de concluir."""
+   - Mira cómo quedaron finalmente en 'PARTIDOS Y PRONÓSTICOS DE AYER' y quién sumó puntos definitivos.
+   - Comenta brevemente y de forma SÚPER ESPECÍFICA el desenlace de esos partidos al principio de la crónica de hoy.
+   - EJEMPLO OBLIGATORIO: Si Edu acertó el Arabia Saudí vs Uruguay 1-1 y ganó 3 puntos, di explícitamente: "Ayer al final el Arabia-Uruguay acabó 1-1, por lo que Edu se llevó 3 puntazos al casillero...". No uses frases genéricas como "algunos se frotaron las manos", menciona nombres reales de los participantes y puntos ganados concretos.
+   - IMPORTANTE: No vuelvas a hablar ni a repetir comentarios de los partidos de ayer que ya estaban finalizados y comentados definitivamente en la crónica anterior (como España-Cabo Verde o Suecia-Túnez). Céntrate únicamente en repasar lo que se había quedado pendiente de concluir."""
 
         content = await AISummaryService._call_gemini_api(prompt, matches, rankings_today)
         return await AISummaryService._save_summary(db, summary_date, content)
