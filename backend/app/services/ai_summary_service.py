@@ -210,7 +210,7 @@ Instrucciones:
             logger.warning("GEMINI_API_KEY no está configurada. Usando fallback local humorístico.")
             return AISummaryService._generate_fallback_summary(matches, rankings_today)
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={api_key}"
         headers = {"Content-Type": "application/json"}
         payload = {
             "contents": [{
