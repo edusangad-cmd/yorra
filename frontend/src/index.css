@@ -25,6 +25,9 @@
   color: var(--text);
   margin: 0;
   padding: 0;
+}
+
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
@@ -254,54 +257,52 @@ body {
   color: var(--danger);
 }
 
-/* Tabs */
+/* Tabs Navigation Capsule style */
 .tab-nav {
   display: flex;
-  gap: 0.5rem;
-  border-bottom: 1px solid var(--border);
+  gap: 0.35rem;
+  padding: 0.4rem;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 9999px;
+  border: 1px solid var(--border);
   margin-bottom: 2rem;
-  padding-bottom: 0.5rem;
   overflow-x: auto;
   white-space: nowrap;
-  scrollbar-width: none; /* Firefox */
+  scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  align-items: center;
 }
 
 .tab-nav::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none;
 }
 
 .tab-btn {
   background: none;
   border: none;
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 600;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 700;
   color: var(--text);
   cursor: pointer;
   position: relative;
-  transition: color 0.2s ease;
-  border-radius: 0.5rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 9999px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .tab-btn:hover {
   color: var(--text-h);
-  background: var(--accent-bg);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .tab-btn.active {
-  color: var(--accent);
-}
-
-.tab-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: -0.5rem;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background-color: var(--accent);
+  color: #ffffff;
+  background: var(--accent);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 /* Matches Grid */
@@ -1202,6 +1203,12 @@ body {
   align-items: center;
 }
 
+.control-toolbar button {
+  white-space: normal;
+  word-break: break-word;
+  text-align: center;
+}
+
 @media (min-width: 768px) {
   .control-toolbar {
     margin: 1rem 2rem;
@@ -1311,7 +1318,7 @@ body {
 }
 
 .btn-save-all-drafts {
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
@@ -1346,7 +1353,159 @@ body {
     gap: 1.25rem;
   }
   .btn-save-all-drafts {
+    display: flex;
     width: auto;
+  }
+}
+
+/* Match Card Body Layout Switch */
+.match-card-body-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.match-card-body-desktop {
+  display: none;
+}
+
+.mobile-team-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  gap: 1rem;
+}
+
+.mobile-team-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.mobile-team-info .team-name {
+  text-align: left;
+}
+
+.mobile-real-score {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-h);
+  width: 34px;
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .match-card-body-mobile {
+    display: none;
+  }
+  .match-card-body-desktop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+}
+
+/* Floating Action Button (FAB) for mobile save drafts */
+.floating-save-btn {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.5rem;
+  border-radius: 9999px;
+  background: var(--success);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border: none;
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+  cursor: pointer;
+  animation: pulseSave 2s infinite;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.floating-save-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 30px rgba(16, 185, 129, 0.5);
+}
+
+.floating-save-btn:active {
+  transform: translateY(0) scale(1);
+}
+
+@keyframes pulseSave {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  70% { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@media (min-width: 768px) {
+  .floating-save-btn {
+    display: none; /* Hide on desktop */
+  }
+}
+
+/* Admin Tools Accordion details/summary styling */
+.admin-tools-accordion {
+  margin: 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.admin-tools-accordion[open] {
+  box-shadow: var(--shadow-lg);
+}
+
+.admin-tools-summary {
+  list-style: none; /* hides default triangle in Firefox/Chrome */
+  outline: none;
+  cursor: pointer;
+  padding: 0.75rem 1.25rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-h);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.02);
+  user-select: none;
+}
+
+.admin-tools-summary::-webkit-details-marker {
+  display: none; /* hides default triangle in Safari */
+}
+
+.summary-chevron {
+  font-size: 0.65rem;
+  transition: transform 0.2s ease;
+  opacity: 0.6;
+}
+
+.admin-tools-accordion[open] .summary-chevron {
+  transform: rotate(180deg);
+}
+
+.admin-tools-accordion .control-toolbar {
+  margin: 0 !important;
+  border: none !important;
+  border-top: 1px solid var(--border) !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: 1rem !important;
+}
+
+@media (min-width: 768px) {
+  .admin-tools-accordion {
+    margin: 1rem 2rem;
   }
 }
 

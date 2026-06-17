@@ -829,6 +829,29 @@ function App() {
     })).sort((a, b) => a.groupName.localeCompare(b.groupName));
   }, [matches]);
 
+  const hasUnsavedDrafts = useMemo(() => {
+    return matches.some((m) => {
+      const matchDateObj = new Date(m.date);
+      const isStarted = matchDateObj <= new Date();
+      const hasFinished = m.status === "FT";
+      if (isStarted || hasFinished) return false;
+
+      const draft = editingScores[m.id];
+      const pred = predictions[m.id];
+      if (!draft || draft.home === "" || draft.away === "") return false;
+
+      const scoreChanged =
+        draft.home !== (pred ? String(pred.home_score) : "") ||
+        draft.away !== (pred ? String(pred.away_score) : "");
+
+      const penaltyWinnerChanged =
+        (editingPenaltyWinners[m.id] !== undefined ? editingPenaltyWinners[m.id] : null) !==
+        (pred && pred.penalty_winner_home !== undefined ? pred.penalty_winner_home : null);
+
+      return scoreChanged || penaltyWinnerChanged;
+    });
+  }, [matches, editingScores, predictions, editingPenaltyWinners]);
+
 
   // Render bracket match card helper
   const renderBracketMatchCard = (m: Match) => {
@@ -1023,7 +1046,8 @@ function App() {
           </span>
         </div>
 
-        <div className="match-card-body">
+        {/* Layout de Escritorio (Horizontal) */}
+        <div className="match-card-body-desktop">
           <div className="team">
             <span className="team-flag">{homeFlag}</span>
             <span className="team-name">{homeResolved}</span>
@@ -1062,6 +1086,47 @@ function App() {
           <div className="team">
             <span className="team-flag">{awayFlag}</span>
             <span className="team-name">{awayResolved}</span>
+          </div>
+        </div>
+
+        {/* Layout Móvil (Apilado por filas de equipo) */}
+        <div className="match-card-body-mobile">
+          <div className="mobile-team-row">
+            <div className="mobile-team-info">
+              <span className="team-flag">{homeFlag}</span>
+              <span className="team-name">{homeResolved}</span>
+            </div>
+            {m.home_score !== null && m.away_score !== null ? (
+              <span className="mobile-real-score">{m.home_score}</span>
+            ) : (
+              <input
+                type="text"
+                className="pred-input"
+                placeholder="-"
+                value={draft.home}
+                onChange={(e) => handleScoreChange(m.id, "home", e.target.value)}
+                disabled={isStarted || hasFinished || !!viewingUser}
+              />
+            )}
+          </div>
+
+          <div className="mobile-team-row">
+            <div className="mobile-team-info">
+              <span className="team-flag">{awayFlag}</span>
+              <span className="team-name">{awayResolved}</span>
+            </div>
+            {m.home_score !== null && m.away_score !== null ? (
+              <span className="mobile-real-score">{m.away_score}</span>
+            ) : (
+              <input
+                type="text"
+                className="pred-input"
+                placeholder="-"
+                value={draft.away}
+                onChange={(e) => handleScoreChange(m.id, "away", e.target.value)}
+                disabled={isStarted || hasFinished || !!viewingUser}
+              />
+            )}
           </div>
         </div>
 
@@ -1275,21 +1340,26 @@ function App() {
 
       {/* Control Panel Toolbar */}
       {!viewingUser && (
-        <div className="glass-panel control-toolbar">
-          <span style={{ fontWeight: 600, color: "var(--accent)" }}>🛠️ Herramientas de Prueba:</span>
-          <button onClick={handleSimulateMyPredictions} className="btn-save-pred" style={{ background: "rgba(139, 92, 246, 0.2)", color: "#c084fc", border: "1px solid rgba(139, 92, 246, 0.4)" }}>
-            🎲 Simular mis Pronósticos
-          </button>
-          <button onClick={handleResetMyPredictions} className="btn-save-pred" style={{ background: "rgba(139, 92, 246, 0.1)", color: "#e9d5ff", border: "1px solid rgba(139, 92, 246, 0.2)" }} disabled={isSimulatingAll}>
-            🧹 Resetear mis Pronósticos
-          </button>
-          <button onClick={handleSimulateRealScores} className="btn-save-pred" style={{ background: "rgba(239, 68, 68, 0.2)", color: "#f87171", border: "1px solid rgba(239, 68, 68, 0.4)" }} disabled={isSimulatingAll}>
-            {isSimulatingAll ? "Simulando..." : "🎲 Simular Resultados Reales (Admin)"}
-          </button>
-          <button onClick={handleResetRealScores} className="btn-save-pred" style={{ background: "rgba(239, 68, 68, 0.1)", color: "#fecaca", border: "1px solid rgba(239, 68, 68, 0.2)" }} disabled={isSimulatingAll}>
-            🧹 Resetear Resultados Reales (Admin)
-          </button>
-        </div>
+        <details className="admin-tools-accordion glass-panel">
+          <summary className="admin-tools-summary">
+            <span>🛠️ Herramientas de Desarrollo y Prueba</span>
+            <span className="summary-chevron">▼</span>
+          </summary>
+          <div className="control-toolbar">
+            <button onClick={handleSimulateMyPredictions} className="btn-save-pred" style={{ background: "rgba(139, 92, 246, 0.2)", color: "#c084fc", border: "1px solid rgba(139, 92, 246, 0.4)" }}>
+              🎲 Simular mis Pronósticos
+            </button>
+            <button onClick={handleResetMyPredictions} className="btn-save-pred" style={{ background: "rgba(139, 92, 246, 0.1)", color: "#e9d5ff", border: "1px solid rgba(139, 92, 246, 0.2)" }} disabled={isSimulatingAll}>
+              🧹 Resetear mis Pronósticos
+            </button>
+            <button onClick={handleSimulateRealScores} className="btn-save-pred" style={{ background: "rgba(239, 68, 68, 0.2)", color: "#f87171", border: "1px solid rgba(239, 68, 68, 0.4)" }} disabled={isSimulatingAll}>
+              {isSimulatingAll ? "Simulando..." : "🎲 Simular Resultados Reales (Admin)"}
+            </button>
+            <button onClick={handleResetRealScores} className="btn-save-pred" style={{ background: "rgba(239, 68, 68, 0.1)", color: "#fecaca", border: "1px solid rgba(239, 68, 68, 0.2)" }} disabled={isSimulatingAll}>
+              🧹 Resetear Resultados Reales (Admin)
+            </button>
+          </div>
+        </details>
       )}
 
       {/* Tabs Navigation */}
@@ -1298,37 +1368,37 @@ function App() {
           onClick={() => setActiveTab("matches")}
           className={`tab-btn ${activeTab === "matches" ? "active" : ""}`}
         >
-          Partidos Fase de Grupos
+          ⚽ Grupos
         </button>
         <button
           onClick={() => setActiveTab("bracket")}
           className={`tab-btn ${activeTab === "bracket" ? "active" : ""}`}
         >
-          Partidos Fase Final
+          🏆 Fase Final
         </button>
         <button
           onClick={() => setActiveTab("standings")}
           className={`tab-btn ${activeTab === "standings" ? "active" : ""}`}
         >
-          Posiciones de Grupos
+          📋 Posiciones
         </button>
         <button
           onClick={() => setActiveTab("sidebets")}
           className={`tab-btn ${activeTab === "sidebets" ? "active" : ""}`}
         >
-          Apuestas Especiales
+          🎯 Especiales
         </button>
         <button
           onClick={() => setActiveTab("leaderboard")}
           className={`tab-btn ${activeTab === "leaderboard" ? "active" : ""}`}
         >
-          Clasificación General
+          🏅 Clasificación
         </button>
         <button
           onClick={() => setActiveTab("rules")}
           className={`tab-btn ${activeTab === "rules" ? "active" : ""}`}
         >
-          Reglas y Puntuación
+          📜 Reglas
         </button>
       </nav>
 
@@ -1824,6 +1894,11 @@ function App() {
       </main>
 
       {/* Modal Overlay for viewing other users' predictions */}
+      {hasUnsavedDrafts && (
+        <button onClick={handleSaveAllDrafts} className="floating-save-btn">
+          💾 Guardar Cambios
+        </button>
+      )}
     </>
   );
 }
