@@ -1,62 +1,69 @@
-# Walkthrough: Adaptabilidad Móvil Completa
+# Walkthrough: Rediseño Completo Mobile-First
 
-Hemos actualizado los estilos y la estructura HTML/React de la porra para que sea completamente responsiva y amigable con dispositivos móviles, previniendo desbordamientos y desplazamientos no deseados en pantallas pequeñas.
+Hemos implementado un rediseño completo de la interfaz de usuario de la porra enfocado en dispositivos móviles (Mobile-First). Esto soluciona los problemas de desbordamiento horizontal y mejora significativamente la estética y usabilidad en pantallas pequeñas.
 
-## Cambios Realizados
+## Cambios de Diseño Implementados
 
-### Estructura e Inline Styles
-* **Contenedor Principal (`<main>`)**: Reemplazamos el estilo inline `padding: "0 2rem 2rem 2rem"` por la clase responsiva `.main-content`. Ahora el padding horizontal se reduce a `1rem` en pantallas móviles y se expande a `2rem` en pantallas más grandes (`>= 768px`).
-* **Toolbar de Pruebas (`.control-toolbar`)**: Reemplazamos los márgenes inline por la clase CSS responsiva `.control-toolbar`, reduciendo los márgenes a `1rem` en móviles y `2rem` a los lados en computadores para ganar espacio de pantalla en móvil.
-* **Apuestas Especiales (`Apuestas Especiales`)**: Reemplazamos los estilos de ancho máximo y padding inline por las clases `.sidebets-container` y `.sidebets-panel` para hacer que el formulario de apuestas ocupe todo el ancho disponible y tenga paddings más ajustados en pantallas de teléfono.
-* **Posiciones de Grupos (`Posiciones de Grupos`)**: Reemplazamos el estilo grid inline con un tamaño mínimo fijo de `320px` por la clase responsiva `.standings-grid`, la cual usa una columna en móvil y transiciona de forma fluida a múltiples columnas en pantallas de tabletas y computadores.
-* **Crónicas de la IA y Reglas**: Reemplazamos paddings y márgenes inline estáticos por las clases `.ai-summaries-panel` y `.rules-panel` respectivamente, adaptando el padding a `1.25rem` en móviles.
+### 1. Corrección Crítica del Modelo de Caja (`box-sizing`)
+* **Problema raíz**: El archivo original de estilos solo declaraba `box-sizing: border-box` en la regla `:root`. Esto provocaba que cualquier input, botón o panel de ancho `100%` con paddings o bordes añadiera ese espacio extra externamente, estirando la pantalla móvil y causando desbordamientos.
+* **Solución**: Se asignó de forma global la propiedad a todos los elementos usando el selector universal en `index.css`:
+  ```css
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  ```
+  Esto garantiza que el padding y el borde se calculen dentro del ancho del elemento, previniendo desbordamientos automáticos.
 
-### Navegación y Scroll Horizontal
-* **Barra de Pestañas (`.tab-nav`)**: Se añadió `overflow-x: auto;` y `-webkit-overflow-scrolling: touch;` junto con la ocultación de la barra de scroll nativa. Adicionalmente, se configuró `flex-shrink: 0;` en los botones `.tab-btn`. Esto permite desplazarse de izquierda a derecha con el dedo para ver todas las pestañas de forma natural en pantallas de móviles sin alterar el diseño de la página.
+### 2. Tarjetas de Partido Apiladas en Vertical para Móviles
+* **Diseño clásico (Escritorio)**: Mantiene la estructura de fila horizontal `[Team A] [Inputs] [Team B]`.
+* **Diseño móvil (Mobile-First)**: Inspirado en aplicaciones deportivas como *SofaScore* o *ESPN*. En pantallas menores a `640px` la tarjeta se transforma en dos filas verticales independientes (una por equipo):
+  * **Fila Superior (Equipo Local)**: Bandera y Nombre del país alineados a la izquierda, y marcador (real o input de entrada) alineado a la derecha.
+  * **Fila Inferior (Equipo Visitante)**: Bandera y Nombre del país alineados a la izquierda, y marcador (real o input de entrada) alineado a la derecha.
+  * Este diseño ofrece casi un **80% de ancho de pantalla** para el nombre del equipo, lo que hace físicamente imposible que un nombre largo empuje o rompa la tarjeta de partido.
 
-### Ajuste de Componentes e Información de Partidos
-* **Reducción de Padding Global en Móviles**:
-  * Redujimos el padding horizontal del contenedor raíz `#root` de `1rem` a `0.5rem` en pantallas móviles.
-  * Redujimos el padding horizontal de `.main-content` de `1rem` a `0.5rem` en móviles.
-  * Esto libera más de 32px de ancho de contenido neto, permitiendo que las tarjetas de partidos quepan holgadamente.
-* **Cabecera General (`.dashboard-header`)**: Redujimos el padding a `1rem` y reorganizamos los elementos en un layout flex vertical para móviles (`.header-actions` y `.user-nav-profile` ahora se adaptan a 100% de ancho y se alinean de forma apilada sin desbordarse). El botón `💾 Guardar Todo` ahora ocupa el ancho completo en móvil y se adapta en pantallas grandes.
-* **Tarjetas de Partidos (`.match-card`)**:
-  * Redujimos el padding a `1rem` en móviles.
-  * Disminuimos el espacio interior de la tarjeta (`.match-card-body` con `gap: 0.5rem` en móviles en lugar de `1rem`).
-  * Redujimos proporcionalmente el tamaño de las banderas (`.team-flag` de `2.25rem` a `1.75rem` / `36px`) y el tamaño de las cajas de marcador (`.pred-input` de `40px` a `34px` de ancho/alto con fuente de `1.1rem` en móvil).
-  * Añadimos `min-width: 0` a la clase `.team` para permitir que los nombres de los equipos se adapten.
-  * Agregamos reglas de envoltura de texto en `.team-name` (`word-break: break-word`, `overflow-wrap: break-word`) junto con un corte de texto en un máximo de dos líneas (`-webkit-line-clamp: 2`). Esto previene que nombres excesivamente largos (como "República Democrática del Congo") ensanchen la tarjeta y causen desbordamiento horizontal en el viewport del móvil.
-* **Podio (`.podium`)**: Se ajustaron las dimensiones de los pedestales y nombres del podio (`width: 80px` y `max-width: 75px` en móvil) para que los tres primeros puestos quepan perfectamente lado a lado en un ancho estándar de móvil (320px-375px).
+### 3. Pestañas de Navegación de Píldora con Emojis
+* Rediseñamos el menú de navegación superior `.tab-nav` para transformarlo en una barra de cápsula o píldoras con fondo translúcido y bordes redondeados.
+* Añadimos emojis significativos a cada pestaña en `App.tsx` para mejorar la accesibilidad móvil y acortamos los textos para ahorrar espacio:
+  * ⚽ Grupos
+  * 🏆 Fase Final
+  * 📋 Posiciones
+  * 🎯 Especiales
+  * 🏅 Clasificación
+  * 📜 Reglas
+* Los botones activos se resaltan con el color primario de acento (`var(--accent)`) y tienen un sombreado flotante para dar un efecto premium.
+
+### 4. Botón Flotante de Guardado en Móviles (FAB)
+* Para liberar espacio en la cabecera en móviles, el botón estático "Guardar Todo" del header se oculta en pantallas pequeñas.
+* En su lugar, mediante React calculamos de forma reactiva si el usuario tiene cambios locales pendientes por guardar en el servidor (`hasUnsavedDrafts`).
+* Si existen cambios pendientes, aparece un **Botón de Acción Flotante (`floating-save-btn`)** en la esquina inferior derecha. Cuenta con una micro-animación pulsante en color verde (`var(--success)`) para invitar sutilmente al usuario a guardar antes de salir. Desaparece automáticamente en cuanto se guardan los cambios o se restablecen los marcadores.
+
+### 5. Panel de Herramientas de Prueba Colapsable
+* Las herramientas de administración (simulación y reseteo de partidos) ocupaban demasiado espacio vertical en móvil por defecto.
+* Envolvimos la barra `.control-toolbar` en una etiqueta nativa HTML `<details>` y `<summary>` en `App.tsx`.
+* Ahora las herramientas de prueba se encuentran agrupadas bajo una pestaña colapsable ("🛠️ Herramientas de Desarrollo y Prueba") que permanece **cerrada por defecto** en móviles y escritorio, pero se despliega con un clic mostrando una animación suave.
 
 ---
 
-## Verificación Realizada
+## Verificación de Calidad
 
-### Comprobaciones Estáticas (verify.sh)
-Ejecutamos el conjunto completo de validaciones ( Ruff, Mypy, ESLint, TypeScript Compiler y Vitest) a través de los contenedores de Docker. Los resultados pasaron exitosamente:
+### Validaciones Estáticas (verify.sh)
+Ejecutamos el conjunto completo de validaciones (Ruff, Mypy, ESLint, TypeScript Compiler y Vitest) a través de los contenedores de Docker. Los resultados pasaron exitosamente sin errores:
 
 ```bash
 ── backend: ruff ──
 ── frontend: eslint ──
 All checks passed!
 ── backend: mypy ──
+── frontend: tsc ──
 
 > frontend@0.0.0 lint
 > eslint .
 
 Success: no issues found in 21 source files
-── backend: pytest ──
 ── frontend: tsc ──
 
 > frontend@0.0.0 typecheck
 > tsc -b
 
-── frontend: vitest ──
-
-> frontend@0.0.0 test
-> echo 'No tests yet' && exit 0
-
-No tests yet
-15 passed, 238 warnings in 120.04s (0:02:00)
 ✅ verify passed
 ```

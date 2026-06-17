@@ -1,6 +1,7 @@
-# Tareas: Implementación de Frontend Mobile-Friendly
+# Tareas: Rediseño Mobile-First
 
-- [x] Modificar `index.css` para añadir clases responsivas y estilos adaptados a móviles
-- [x] Modificar `App.tsx` para usar las nuevas clases responsivas en lugar de estilos inline
-- [x] Ejecutar comprobaciones estáticas y de tipado (`verify.sh --fast` o comandos manuales de frontend)
-- [x] Verificar y documentar los resultados en el Walkthrough
+- [x] Modificar `App.tsx` para agregar emojis, colapsar herramientas de pruebas, calcular `hasUnsavedDrafts` y renderizar el botón flotante y el nuevo layout de tarjeta
+- [x] Modificar `index.css` para añadir los estilos del menú de píldoras, tarjeta de partido apilada para móviles, botón flotante y estilos del panel colapsable
+- [x] Ejecutar comprobaciones estáticas y de tipado (`verify.sh --fast`)
+- [x] Reconstruir contenedores Docker
+- [/] Actualizar y documentar los resultados en el Walkthrough

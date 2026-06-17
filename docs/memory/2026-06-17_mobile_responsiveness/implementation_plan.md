@@ -1,55 +1,62 @@
-# Plan de Implementación: Frontend Mobile-Friendly
+# Plan de Rediseño Mobile-First: Yorra Mundial 2026
 
-Este plan describe los cambios necesarios en el frontend para asegurar que la aplicación de la porra (Yorra Mundial 2026) sea completamente responsiva y amigable en dispositivos móviles, previniendo los desbordamientos de pantalla reportados.
+Este plan detalla una reestructuración completa del diseño de la aplicación para ofrecer una experiencia móvil nativa y premium, en lugar de adaptar a la fuerza el diseño de escritorio.
 
 ## User Review Required
 
-> [!NOTE]
-> Para la navegación principal (`.tab-nav`), en lugar de colapsar las pestañas en un menú desplegable (que escondería opciones principales), proponemos mantenerlas en una sola línea pero habilitar un **desplazamiento horizontal fluido (swipe/scroll)** con barra de desplazamiento oculta. Este es el patrón de diseño móvil más común y estético para menús de pestañas.
-
-> [!WARNING]
-> La sección del simulador de Fase Final (Bracket) requiere desplazarse horizontalmente en móviles para ver todas las rondas (ya que no caben 5 columnas en 375px). Agregaremos un contenedor con `overflow-x: auto` y suavizado de scroll para que la experiencia sea fluida.
+> [!IMPORTANT]
+> **Rediseño de Tarjetas de Partido (Layout de Sofascore/ESPN)**:
+> Reemplazamos la fila horizontal en móvil por una distribución vertical de dos filas (una para cada equipo) con el marcador/input en el extremo derecho. Esto evita que los nombres de los equipos queden apretados y emula el diseño de las apps de resultados deportivos líderes.
+>
+> **Botón Flotante de Guardado (FAB)**:
+> En móviles, el botón "Guardar Todo" del header se ocultará y aparecerá un **Botón de Acción Flotante (FAB)** en la esquina inferior derecha cuando existan cambios pendientes de guardar. Tendrá una micro-animación pulsante para notificar al usuario que tiene pronósticos por enviar.
 
 ## Proposed Changes
 
-### Frontend styling and layouts
+### 1. Reestructuración de Componentes (React)
+
+#### [MODIFY] [App.tsx](file:///Users/e.sanchez/PROYECTOS/porra-deportiva/frontend/src/App.tsx)
+* **Pestañas de Navegación (`.tab-nav`)**: Agregar emojis identificadores a cada botón para mejorar el reconocimiento visual en pantallas pequeñas.
+* **Acordeón para Herramientas de Prueba**: Envolver la barra de control (`.control-toolbar`) en una etiqueta nativa `<details>` para colapsar las herramientas de administración por defecto, liberando espacio en móviles.
+* **Doble Layout en Tarjetas de Partido (`renderMatchCard`)**:
+  * Implementar dos contenedores de cuerpo diferentes: `.match-card-body-desktop` (horizontal clásica) y `.match-card-body-mobile` (filas verticales apiladas por equipo).
+  * Estructura del Layout Móvil:
+    * Fila del Equipo Local: Bandera, Nombre del Equipo, Marcador Real o Caja de Entrada.
+    * Fila del Equipo Visitante: Bandera, Nombre del Equipo, Marcador Real o Caja de Entrada.
+* **Lógica de Pronósticos Pendientes**:
+  * Añadir un `useMemo` (`hasUnsavedDrafts`) que verifique si el usuario tiene algún marcador modificado pendiente de ser guardado en el servidor.
+  * Renderizar al final del componente el botón flotante `floating-save-btn` condicionado a `hasUnsavedDrafts` y ocultarlo en escritorio vía CSS.
+
+### 2. Estilización del Diseño Mobile-First (CSS)
+
+#### [MODIFY] [index.css](file:///Users/e.sanchez/PROYECTOS/porra-deportiva/frontend/src/index.css)
+* **Menú de Pestañas Premium (Pill-Tabs)**:
+  * Cambiar las pestañas de texto simple por cápsulas/píldoras con bordes semi-transparentes y un color de fondo suave.
+  * Aplicar un sombreado y gradiente al botón activo para que resalte.
+* **Estilos del Layout de Partido Móvil**:
+  * Definir `.match-card-body-mobile` con `display: flex; flex-direction: column; gap: 0.75rem;` y `.match-card-body-desktop` con `display: none;` en móvil.
+  * Crear la clase `.team-row` para alinear equipo e input a los extremos (`justify-content: space-between`).
+  * Invertir los estilos de visibilidad mediante media queries para resoluciones `>= 640px`.
+* **Botón Flotante (`.floating-save-btn`)**:
+  * Diseñar el botón con posición fija (`position: fixed`), fondo verde (`var(--success)`), bordes redondeados y una sombra proyectada.
+  * Añadir la animación `@keyframes pulseSave` para dar un efecto de pulso suave.
+* **Acordeón de Herramientas de Prueba**:
+  * Diseñar la etiqueta `<details>` con un estilo limpio y cabecera indicativa para evitar que las herramientas administrativas ocupen espacio visual innecesario en móviles por defecto.
 
 ---
 
-#### [MODIFY] [index.css](file:///Users/e.sanchez/PROYECTOS/porra-deportiva/frontend/src/index.css)
-* Crear clases responsivas para reemplazar estilos inline en `App.tsx` (márgenes y paddings excesivos en móvil).
-* Modificar `.tab-nav` para permitir scroll horizontal fluido sin barras de desplazamiento visibles en móvil.
-* Modificar `.matches-grid` para que use `grid` real (1 columna en móvil, 2 en pantallas de tablets/computadores) en lugar de una lista vertical larga.
-* Ajustar la tarjeta de partido `.match-card` y el nombre de los equipos `.team-name` con `word-break: break-word` y `min-width: 0` para evitar que nombres largos (ej. "República Democrática del Congo") ensanchen la tarjeta más allá del viewport.
-* Modificar la visualización del podio `.podium` para encogerse ordenadamente en pantallas pequeñas sin encabalgarse.
-* Agregar media queries para la tarjeta de autenticación (`.auth-card`), toolbar de herramientas (`.control-toolbar`), el banner del modo lectura (`.viewing-user-banner`) y tablas.
-
-#### [MODIFY] [App.tsx](file:///Users/e.sanchez/PROYECTOS/porra-deportiva/frontend/src/App.tsx)
-* Reemplazar los estilos inline que fuerzan paddings de `2rem` o `2.5rem` por nuevas clases CSS asociadas:
-  * El contenedor `<main>` principal (`padding: "0 2rem 2rem 2rem"` -> `className="main-content"`).
-  * El panel de herramientas de prueba (`style={{ margin: "1rem 2rem", ... }}` -> `className="control-toolbar glass-panel"`).
-  * El contenedor de Apuestas Especiales (`style={{ maxWidth: "600px", margin: "0 auto" }}` -> `className="sidebets-container"` y su panel interno -> `className="sidebets-panel glass-panel"`).
-  * Las posiciones de grupo (`style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}` -> `className="standings-grid"`).
-  * El panel de crónicas diarias de la IA (`style={{ marginTop: "2rem", padding: "2rem", borderRadius: "16px" }}` -> `className="ai-summaries-panel glass-panel"`).
-  * El panel de reglas y puntuación (`style={{ padding: "2.5rem", borderRadius: "16px" }}` -> `className="rules-panel glass-panel"`).
-
-## Verification Plan
+## Plan de Verificación
 
 ### Automated Tests
-* Ejecutar verificación estática y tipado del frontend en Docker:
+* Validar que la compilación de TypeScript y ESLint pasen sin errores:
   ```bash
   docker compose exec frontend npm run lint
   docker compose exec frontend npm run typecheck
   ```
 
 ### Manual Verification
-* Dado que el `browser_subagent` ha fallado por problemas de contexto CDP en este entorno local, la verificación visual debe ser realizada manualmente o mediante un navegador real en el host.
-* Pasos para la verificación manual:
-  1. Abrir `http://localhost:3000` en un navegador web (e.g. Chrome/Safari) en el host.
-  2. Activar las herramientas de desarrollador y emular un dispositivo móvil (ej: iPhone SE o iPhone 12/13/14 Pro - anchos de 375px a 390px).
-  3. Comprobar que:
-     * El menú de navegación de pestañas se desplaza horizontalmente deslizando el dedo y no se sale de los bordes de la pantalla.
-     * La lista de partidos de grupos se ajusta al ancho de la pantalla y no hay scroll horizontal general en el body.
-     * Los nombres largos de los equipos se envuelven en varias líneas y no rompen la tarjeta.
-     * La pestaña de apuestas especiales y reglas se ven legibles sin márgenes gigantes a los lados.
-     * El podio de clasificación general se escala proporcionalmente.
+* Probar la vista en navegadores móviles e incógnito en el host para verificar:
+  * El colapso del panel administrativo.
+  * La legibilidad y orden del nuevo layout de tarjeta vertical de partido.
+  * La visibilidad del botón flotante verde al cambiar cualquier marcador, y su desaparición tras pulsar "Guardar".
+  * El diseño estético de las pestañas en formato de píldora.
