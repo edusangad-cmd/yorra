@@ -15,9 +15,15 @@ Hemos actualizado los estilos y la estructura HTML/React de la porra para que se
 * **Barra de Pestañas (`.tab-nav`)**: Se añadió `overflow-x: auto;` y `-webkit-overflow-scrolling: touch;` junto con la ocultación de la barra de scroll nativa. Adicionalmente, se configuró `flex-shrink: 0;` en los botones `.tab-btn`. Esto permite desplazarse de izquierda a derecha con el dedo para ver todas las pestañas de forma natural en pantallas de móviles sin alterar el diseño de la página.
 
 ### Ajuste de Componentes e Información de Partidos
-* **Cabecera General (`.dashboard-header`)**: Redujimos el padding y margen inferior en móviles y permitimos que las acciones del usuario se reorganicen limpiamente.
+* **Reducción de Padding Global en Móviles**:
+  * Redujimos el padding horizontal del contenedor raíz `#root` de `1rem` a `0.5rem` en pantallas móviles.
+  * Redujimos el padding horizontal de `.main-content` de `1rem` a `0.5rem` en móviles.
+  * Esto libera más de 32px de ancho de contenido neto, permitiendo que las tarjetas de partidos quepan holgadamente.
+* **Cabecera General (`.dashboard-header`)**: Redujimos el padding a `1rem` y reorganizamos los elementos en un layout flex vertical para móviles (`.header-actions` y `.user-nav-profile` ahora se adaptan a 100% de ancho y se alinean de forma apilada sin desbordarse). El botón `💾 Guardar Todo` ahora ocupa el ancho completo en móvil y se adapta en pantallas grandes.
 * **Tarjetas de Partidos (`.match-card`)**:
   * Redujimos el padding a `1rem` en móviles.
+  * Disminuimos el espacio interior de la tarjeta (`.match-card-body` con `gap: 0.5rem` en móviles en lugar de `1rem`).
+  * Redujimos proporcionalmente el tamaño de las banderas (`.team-flag` de `2.25rem` a `1.75rem` / `36px`) y el tamaño de las cajas de marcador (`.pred-input` de `40px` a `34px` de ancho/alto con fuente de `1.1rem` en móvil).
   * Añadimos `min-width: 0` a la clase `.team` para permitir que los nombres de los equipos se adapten.
   * Agregamos reglas de envoltura de texto en `.team-name` (`word-break: break-word`, `overflow-wrap: break-word`) junto con un corte de texto en un máximo de dos líneas (`-webkit-line-clamp: 2`). Esto previene que nombres excesivamente largos (como "República Democrática del Congo") ensanchen la tarjeta y causen desbordamiento horizontal en el viewport del móvil.
 * **Podio (`.podium`)**: Se ajustaron las dimensiones de los pedestales y nombres del podio (`width: 80px` y `max-width: 75px` en móvil) para que los tres primeros puestos quepan perfectamente lado a lado en un ancho estándar de móvil (320px-375px).
