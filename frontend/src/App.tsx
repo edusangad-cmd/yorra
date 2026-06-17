@@ -1275,7 +1275,7 @@ function App() {
 
       {/* Control Panel Toolbar */}
       {!viewingUser && (
-        <div className="glass-panel control-toolbar" style={{ margin: "1rem 2rem", padding: "0.75rem 1.5rem", borderRadius: "12px", display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center" }}>
+        <div className="glass-panel control-toolbar">
           <span style={{ fontWeight: 600, color: "var(--accent)" }}>🛠️ Herramientas de Prueba:</span>
           <button onClick={handleSimulateMyPredictions} className="btn-save-pred" style={{ background: "rgba(139, 92, 246, 0.2)", color: "#c084fc", border: "1px solid rgba(139, 92, 246, 0.4)" }}>
             🎲 Simular mis Pronósticos
@@ -1334,8 +1334,7 @@ function App() {
 
       {/* Main Tab Content */}
       <main 
-        className={viewingUser ? "viewing-mode-gray" : ""}
-        style={{ flex: 1, padding: "0 2rem 2rem 2rem" }}
+        className={`main-content ${viewingUser ? "viewing-mode-gray" : ""}`}
       >
         {viewedUserLoading ? (
           <div style={{ textAlign: "center", padding: "3rem" }}>
@@ -1428,7 +1427,7 @@ function App() {
           </div>
         ) : activeTab === "standings" ? (
           // --- TAB 3: STANDINGS ---
-          <div className="standings-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "2rem" }}>
+          <div className="standings-grid">
             {Object.entries(standings).sort((a, b) => a[0].localeCompare(b[0])).map(([g, list]) => (
               <div key={g} className="glass-panel" style={{ padding: "1.25rem", borderRadius: "12px" }}>
                 <h3 style={{ color: "var(--accent)", marginBottom: "1rem", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "0.5rem" }}>Grupo {g}</h3>
@@ -1460,8 +1459,8 @@ function App() {
           </div>
         ) : activeTab === "sidebets" ? (
           // --- TAB 4: SIDEBETS ---
-          <div style={{ maxWidth: "600px", margin: "0 auto" }}>
-            <div className="glass-panel" style={{ padding: "2rem", borderRadius: "16px" }}>
+          <div className="sidebets-container">
+            <div className="glass-panel sidebets-panel">
               <h2 style={{ color: "var(--accent)", marginBottom: "1.5rem", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "0.75rem" }}>🎯 Apuestas Especiales del Torneo</h2>
               <p style={{ fontSize: "0.9rem", opacity: 0.8, marginBottom: "2rem" }}>Elige tus favoritos para los premios especiales de la porra. ¡Rellena tus candidatos en cada desplegable y guarda los cambios!</p>
 
@@ -1703,7 +1702,7 @@ function App() {
             </div>
 
             {/* AI Daily Summaries Section */}
-            <div className="glass-panel ai-summaries-section" style={{ marginTop: "2rem", padding: "2rem", borderRadius: "16px" }}>
+            <div className="glass-panel ai-summaries-panel ai-summaries-section">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "1rem", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
                 <h2 style={{ color: "var(--accent)", margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
                   📰 Crónicas Diarias de la IA
@@ -1761,7 +1760,7 @@ function App() {
         ) : (
           // --- TAB 6: RULES ---
           <div style={{ maxWidth: "800px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "2rem" }}>
-            <div className="glass-panel" style={{ padding: "2.5rem", borderRadius: "16px" }}>
+            <div className="glass-panel rules-panel">
               <h2 style={{ color: "var(--accent)", marginBottom: "1.5rem", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 📜 Reglas de Puntuación
               </h2>
