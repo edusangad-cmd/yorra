@@ -20,6 +20,11 @@ class AISummaryService:
         Generates and saves the daily summary for the given date (format YYYY-MM-DD).
         If a summary already exists, it is overwritten.
         """
+        # Update matches from API and force points recalculation so database is up-to-date
+        from app.services.match_service import MatchService
+        await MatchService.update_matches_if_needed(db)
+        await MatchService.recalculate_all_users_points(db)
+
         # Parse date and find matches played on that calendar day
         try:
             target_date = datetime.strptime(summary_date, "%Y-%m-%d").date()
@@ -173,7 +178,8 @@ PUNTUACIÓN TOTAL DEFINITIVA DEL DÍA (solo de partidos finalizados):
 
 Instrucciones:
 1. EXTENSIÓN CORTA: Sé breve, directo y al grano. La crónica debe ocupar: una o dos líneas de título, un párrafo por cada partido comentado de no más de 3 líneas, una o dos líneas de cierre.
-2. TÍTULO CON PUNTOS ACUMULADOS: El título en la primera línea de la crónica debe incluir obligatoriamente el resultado general de puntos acumulados entre todos los participantes (la clasificación general actual). Sé creativo al redactarlo, pero asegúrate de que los nombres de los participantes y sus puntuaciones acumuladas de la porra se lean con total claridad en el título (ej. 'Crónica de la Porra - Edu 15 pts, Juan 10 pts, Pepe 8 pts').
+2. TÍTULO CON PUNTOS ACUMULADOS: El título en la primera línea de la crónica debe incluir obligatoriamente el resultado general de puntos acumulados entre todos los participantes. 
+   - IMPORTANTE: Las puntuaciones de la sección 'CLASIFICACIÓN GENERAL ACUMULADA HASTA HOY' ya están completamente actualizadas y YA INCLUYEN los puntos ganados hoy. NO les sumes nada más, limítate a copiar esas puntuaciones exactas para el título sin realizar ninguna operación matemática (ej. si dice 'Edu (42 pts)', escribe exactamente 'Edu 42 pts' en el título, no sumes hoy a 42).
 3. REGLA CRÍTICA DE ESTADOS: Distingue claramente entre partidos FINALIZADOS, EN JUEGO y NO EMPEZADOS.
    - Para partidos FINALIZADOS: Comenta el resultado definitivo de forma rápida y destaca aciertos de marcador exacto.
    - Para partidos EN JUEGO o NO EMPEZADOS: Habla de ellos en futuro o condicional (ej. 'Edu va ganando..., pero todo puede cambiar si Uganda gana a México...'). NUNCA los comentes como si ya hubieran terminado.
