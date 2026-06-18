@@ -1,5 +1,6 @@
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -850,6 +851,100 @@ async def test_daily_summaries_flow() -> None:
 
     # Clean up summary
     async with async_session_maker() as session:
+        summary_res = await session.execute(
+            select(DailySummary).where(DailySummary.summary_date == date_str)  # type: ignore[arg-type]
+        )
+        for s in summary_res.scalars().all():
+            await session.delete(s)
+        await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_daily_summaries_prompt_content() -> None:
+    # Pre-cleanup in case of a dirty state
+    async with async_session_maker() as session:
+        match_preds = (await session.execute(select(Prediction).where(Prediction.match_id == 9999))).scalars().all()  # type: ignore[arg-type]
+        for mp in match_preds:
+            await session.delete(mp)
+        m_obj = await session.get(Match, 9999)
+        if m_obj:
+            await session.delete(m_obj)
+            
+        res = await session.execute(
+            select(User).where(User.telegram_id == "test_prompt_user")  # type: ignore[arg-type]
+        )
+        for u in res.scalars().all():
+            preds = (await session.execute(select(Prediction).where(Prediction.user_id == u.id))).scalars().all()  # type: ignore[arg-type]
+            for p in preds:
+                await session.delete(p)
+            await session.delete(u)
+        await session.commit()
+
+    # 1. Setup user, match in DB
+    async with async_session_maker() as session:
+        user = User(telegram_id="test_prompt_user", username="test_prompt_user", full_name="Edu Sanchez", points=42)
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+
+        # Match played today
+        today_date = datetime.now(UTC).date()
+        today_match = Match(
+            id=9999,
+            home_team="Spain",
+            away_team="Cabo Verde",
+            home_score=6,
+            away_score=0,
+            status="FT",
+            date=datetime.combine(today_date, datetime.now(UTC).time()),
+        )
+        session.add(today_match)
+        await session.commit()
+
+    date_str = today_date.strftime("%Y-%m-%d")
+    from unittest.mock import patch
+    
+    captured_prompt = None
+    async def mock_call_gemini_api(prompt: str, matches: Any, rankings_today: Any) -> str:
+        nonlocal captured_prompt
+        captured_prompt = prompt
+        return "mocked response"
+
+    with patch("app.services.ai_summary_service.AISummaryService._call_gemini_api", side_effect=mock_call_gemini_api):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            res_gen = await ac.post("/api/daily-summaries/generate", json={"date": date_str})
+            assert res_gen.status_code == 200
+
+    # Verify captured prompt contents
+    assert captured_prompt is not None
+    # Check overall rankings (title requirement)
+    assert "Edu Sanchez (42 pts)" in captured_prompt
+    assert "TÍTULO CON PUNTOS ACUMULADOS" in captured_prompt
+    
+    # Check new glossary terms
+    assert "el gitano" in captured_prompt
+    assert "el fercho" in captured_prompt
+    assert "el cé" in captured_prompt
+    assert "negros" in captured_prompt
+    assert "zarik" in captured_prompt
+    assert "el bomba" in captured_prompt
+    assert "la yorra" in captured_prompt
+    assert "llevar goles" in captured_prompt
+    assert "el filmo" in captured_prompt
+    
+    # Check tone rules
+    assert "qué bello" in captured_prompt
+    assert "macho" in captured_prompt
+    assert "niño" in captured_prompt
+
+    # Clean up
+    async with async_session_maker() as session:
+        db_user = await session.get(User, user.id)
+        if db_user:
+            await session.delete(db_user)
+        m = await session.get(Match, 9999)
+        if m:
+            await session.delete(m)
         summary_res = await session.execute(
             select(DailySummary).where(DailySummary.summary_date == date_str)  # type: ignore[arg-type]
         )
