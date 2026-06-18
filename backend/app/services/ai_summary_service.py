@@ -152,9 +152,6 @@ class AISummaryService:
         else:
             rankings_today.append("Nadie ha sumado puntos definitivos hoy.")
 
-        # Get overall leaderboard rankings (overall points)
-        overall_rankings_str = await AISummaryService.get_overall_rankings_str(db)
-
         # Build prompt
         pending_section = ""
         if yesterday_reports:
@@ -172,19 +169,16 @@ class AISummaryService:
 
 Escribe una crónica diaria para el día {summary_date} basada en los siguientes datos:
 
-CLASIFICACIÓN GENERAL ACUMULADA HASTA HOY (PUNTOS TOTALES DE LA PORRA):
-{overall_rankings_str}
-
 {pending_section}PARTIDOS Y PRONÓSTICOS DE HOY:
 {matches_section}
 
 PUNTUACIÓN TOTAL DEFINITIVA DEL DÍA (solo de partidos finalizados):
+{rankings_section}
+
 Instrucciones:
-1. EXTENSIÓN CORTA: Sé breve, directo y al grano. La crónica debe ocupar: un párrafo por cada partido comentado de no más de 3 líneas, y una o dos líneas de cierre. NO escribas ningún título ni cabecera al principio (por ejemplo, no pongas cosas como 'Crónica de hoy' ni la clasificación de participantes), empieza directamente con el primer párrafo del comentario, ya que el título con la clasificación real y sus puntos exactos se añadirá automáticamente de forma externa por el servidor.
-2. REGLA CRÍTICA DE ESTADOS: Distingue claramente entre partidos FINALIZADOS, EN JUEGO y NO EMPEZADOS.
-   - Para partidos FINALIZADOS: Comenta el resultado definitivo de forma rápida y destaca aciertos de marcador exacto.
-   - Para partidos EN JUEGO o NO EMPEZADOS: Habla de ellos en futuro o condicional (ej. 'Edu va ganando..., pero todo puede cambiar si Uganda gana a México...'). NUNCA los comentes como si ya hubieran terminado.
-3. GLOSARIO LOCAL (úsalos con moderación y gracia, sin abusar, intenta variar, no están escritos por orden de importancia así que da a todos la misma probabilidad de ser usados):
+1. EXTENSIÓN CORTA Y DINÁMICA: Sé breve, directo y al grano. La crónica debe ocupar un párrafo por cada partido comentado (de no más de 3 líneas) y una o dos líneas de cierre. NO escribas ningún título, cabecera ni clasificación al principio. Empieza directamente con el primer párrafo del comentario.
+2. REGLA CRÍTICA DE ESTADOS: Distingue claramente entre partidos FINALIZADOS, EN JUEGO y NO EMPEZADOS. Comenta los finalizados de forma rápida destacando aciertos. Comenta los en juego o no empezados en futuro o condicional, NUNCA como si ya hubieran terminado.
+3. GLOSARIO LOCAL (VARIADO Y SIN REPETIR): Utiliza los siguientes términos de forma variada y natural, sin abusar. No metas todos los términos en el mismo texto ni repitas siempre los mismos conectores o frases (por ejemplo, evita muletillas rígidas como 'veremos qué hace el dado' o similares). Selecciona únicamente 2 o 3 términos del glosario que encajen mejor con el contexto del partido de hoy y varía la elección en cada crónica:
    - 'embudo': locura, excentricidad (ej. 'menudo embudo de pronóstico').
    - 'ponerse un embudo': volverse loco.
    - 'la glora': la selección española. (nunca la gloria ni nada similar, estrictamente La glora)
@@ -204,18 +198,11 @@ Instrucciones:
    - 'la yorra' o 'yorrón' o 'yorrazo': la propia porra en la que participamos.
    - 'llevar goles': ser goleado (ej. 'han llevado goles').
    - 'el filmo': preparador físico de categorías bajas con pelo de rata y muchas ínfulas, que en sus fantasías prepotentes diría que conoce a todos los jugadores del mundial.
-4. TONO Y EXPRESIONES PARTICULARES:
-   - Cuando algo esté bien, di "qué bello" o "og qué bello".
-   - Dirígete o habla de los participantes usando términos como "macho" o "niño" (ej. "og qué bello el gol del cé, niño", "macho, menuda jugada").
-5. Escribe en español de España de manera natural, cercana y divertida.
-6. NO USES ASTERISCOS PARA DIFERENCIAR O DESTACAR NADA: es decir, que no se vean diferencias estilísticas dentro de la crónica sino un texto corrido y natural.
-7. MEMORIA Y REPASO DE PARTIDOS PENDIENTES (OBLIGATORIO Y CON NOMBRES Y PUNTOS CONCRETOS):
-   - Revisa la 'CRÓNICA DEL DÍA ANTERIOR'. Cruza los partidos de 'PARTIDOS Y PRONÓSTICOS DE AYER' con dicho texto.
-   - Si en la crónica del día anterior un partido ya aparecía descrito como finalizado/terminado de forma definitiva (comentando su marcador o resultado final), ¡NO vuelvas a hablar de él ni a mencionarlo hoy!
-   - Solo debes repasar los partidos de ayer que en la crónica anterior aparecían como 'EN JUEGO', 'NO EMPEZADOS', con resultados provisionales, o que simplemente no aparecían en el texto.
-   - Comenta brevemente y de forma SÚPER ESPECÍFICA el desenlace final y los puntos de esos partidos pendientes.
-   - De nuevo, recuerda que este repaso no debe alterar la clasificación general anunciada en el título.
-   - EJEMPLO OBLIGATORIO: Si Edu acertó el EQUPO A vs EQUIPO B 1-1 y ganó 3 puntos, di explícitamente: "Ayer al final el EQUIPO A - EQUIPO B acabó 1-1, por lo que Edu se llevó 3 puntazos al casillero...". Menciona nombres reales de los participantes y puntos ganados concretos."""
+4. PROSA NATURAL Y EVITAR PLANTILLAS: Escribe con un estilo periodístico-deportivo desenfadado pero natural. Evita estructurar todas las crónicas o párrafos de la misma manera (por ejemplo, no empieces siempre los párrafos con el nombre de los participantes o con la misma fórmula). Varía tus oraciones para que cada crónica se lea fresca, única y original.
+5. TONO Y EXPRESIONES PARTICULARES: Cuando algo esté bien, di "qué bello" o "og qué bello". Dirígete o habla de los participantes usando términos como "macho" o "niño" (ej. "og qué bello el gol del cé, niño", "macho, menuda jugada"). Escribe en español de España de manera natural, cercana y divertida.
+6. REGLA DE PUNTUACIONES: NO menciones, calcules, ni intentes deducir clasificaciones generales o puntuaciones acumuladas en la crónica. No digas cosas como 'Edu va primero con X puntos' o 'se pone líder'. Céntrate únicamente en comentar las predicciones y aciertos de los partidos de hoy/ayer de forma individual.
+7. NO USES ASTERISCOS PARA DIFERENCIAR O DESTACAR NADA: es decir, que no se vean diferencias estilísticas dentro de la crónica sino un texto corrido y natural.
+8. MEMORIA Y REPASO DE PARTIDOS PENDIENTES: Revisa la 'CRÓNICA DEL DÍA ANTERIOR' y contrástala con 'PARTIDOS Y PRONÓSTICOS DE AYER'. Si en la crónica anterior un partido ya aparecía descrito como finalizado definitivamente, ¡NO vuelvas a hablar de él hoy! Solo debes repasar los partidos de ayer que aparecían en juego, no empezados, provisionales o no mencionados. Comenta brevemente su desenlace final y los puntos ganados por los participantes de manera muy específica (ej. 'Ayer al final el EQUIPO A - EQUIPO B acabó 1-1, por lo que Edu se llevó 3 puntazos al casillero...')."""
 
         content = await AISummaryService._call_gemini_api(prompt, matches, rankings_today)
         return await AISummaryService._save_summary(db, summary_date, content)

@@ -922,9 +922,10 @@ async def test_daily_summaries_prompt_content() -> None:
 
     # Verify captured prompt contents
     assert captured_prompt is not None
-    # Check overall rankings context
-    assert "Edu Sanchez (42 pts)" in captured_prompt
-    assert "NO escribas ningún título ni cabecera al principio" in captured_prompt
+    # Check overall rankings are NOT in prompt context (pulled from database dynamic repository instead)
+    assert "Edu Sanchez (42 pts)" not in captured_prompt
+    assert "CLASIFICACIÓN GENERAL ACUMULADA HASTA HOY" not in captured_prompt
+    assert "NO escribas ningún título, cabecera ni clasificación al principio" in captured_prompt
     
     # Check new glossary terms
     assert "el gitano" in captured_prompt
