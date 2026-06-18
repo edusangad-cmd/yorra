@@ -1238,7 +1238,7 @@ function App() {
           <span>Partido #{m.id}</span>
           {m.stage !== "group" && (
             <span className="bracket-match-stage-label">
-              {m.stage === "r32" ? "1/16" : m.stage === "r16" ? "1/8" : m.stage === "qf" ? "1/4" : m.stage === "sf" ? "Semis" : m.stage === "third" ? "3er" : "Final"}
+              <span style={{ color: "#b0b0b0" }}>{m.stage === "r32" ? "1/16" : m.stage === "r16" ? "1/8" : m.stage === "qf" ? "1/4" : m.stage === "sf" ? "Semis" : m.stage === "third" ? "3er" : "Final"}</span>
             </span>
           )}
         </div>
@@ -1345,7 +1345,7 @@ function App() {
                 const predHomeScore = pred ? pred.home_score : "?";
                 const predAwayScore = pred ? pred.away_score : "?";
                 return (
-                  <div style={{ fontStyle: "italic", opacity: 0.6 }}>
+                  <div style={{ fontStyle: "italic", color: "#b0b0b0", opacity: 0.9 }}>
                     Predicción original: {getFlagEmoji(predHome)} {predHome} {predHomeScore} - {predAwayScore} {predAway} {getFlagEmoji(predAway)}
                   </div>
                 );
@@ -1909,8 +1909,8 @@ function App() {
                           <td style={{ textAlign: "center", padding: "0.5rem 0" }}>
                             <span 
                               style={{ 
-                                background: isCorrect ? "rgba(16, 185, 129, 0.15)" : "rgba(255,255,255,0.06)", 
-                                color: isCorrect ? "#10b981" : "rgba(255,255,255,0.6)",
+                                background: isCorrect ? "rgba(16, 185, 129, 0.15)" : "rgba(255,165,0,0.15)", 
+                                color: isCorrect ? "#10b981" : "#ff9800",
                                 padding: "2px 6px", 
                                 borderRadius: "4px", 
                                 fontSize: "0.75rem",
