@@ -1,44 +1,54 @@
-# Walkthrough de la Implementación - Gestión Dinámica de Puntuaciones en la Crónica
+# Walkthrough - Historial de Predicciones y Lógica de Cuadros Coincidentes
 
-Hemos completado e integrado la solución para evitar que la IA realice cálculos incorrectos o use puntuaciones desactualizadas de crónicas anteriores.
+Hemos completado la implementación de las funciones necesarias para realizar un seguimiento visual y de puntuación premium de tus predicciones frente al estado real del Mundial 2026, tal y como detallaste en tus respuestas:
 
-## Cambios Realizados
-
-### 1. Extracción y Limpieza del Guardado en la Base de Datos
-- Modificamos el método `generate_daily_summary` en [ai_summary_service.py](file:///Users/e.sanchez/PROYECTOS/porra-deportiva/backend/app/services/ai_summary_service.py) para que guarde en la tabla `DailySummary` únicamente el cuerpo del texto retornado por la IA.
-- Esto mantiene la base de datos limpia de cualquier título o clasificación fija en el momento de generación.
-- De esta manera, cuando se lee la crónica del día anterior para el contexto de hoy (`yesterday_summary_text`), la IA recibe un texto limpio sin puntuaciones desactualizadas, evitando confusiones o que intente recalcular sobre datos incorrectos.
-
-### 2. Eliminación de las Puntuaciones del Prompt
-- Removimos la sección de clasificación general del prompt de Gemini completamente. La IA ya no recibe ni lee los puntos acumulados en su contexto, evitando de raíz que intente sumarlos o inventárselos.
-- Añadimos reglas de naturalidad en la redacción de la crónica:
-  - Instruir a la IA a seleccionar únicamente 2 o 3 términos del glosario local aleatorios en cada ejecución para darles variedad y no saturar el texto.
-  - Prohibir repetir muletillas rígidas como 'veremos qué hace el dado/la glora' y evitar estructuras de oraciones fijas.
-  - Explicitar la prohibición de escribir clasificaciones o puntos en la crónica.
-
-### 3. Generación Dinámica de la Clasificación y Título
-- Agregamos el método estático `get_overall_rankings_str(db)` en [ai_summary_service.py](file:///Users/e.sanchez/PROYECTOS/porra-deportiva/backend/app/services/ai_summary_service.py) para formatear la clasificación directamente consultando la tabla de usuarios (`User`).
-- Modificamos los endpoints GET `/api/daily-summaries` y POST `/api/daily-summaries/generate` en [endpoints.py](file:///Users/e.sanchez/PROYECTOS/porra-deportiva/backend/app/api/endpoints.py) para que, en tiempo de ejecución, consulten este método y antepongan el título con los puntos reales al contenido antes de enviarlo al cliente.
-- Esto garantiza que si las puntuaciones de un usuario cambian o se recalculan, las crónicas reflejarán siempre los puntos exactos y actualizados en tiempo de ejecución.
-
-### 4. Ajuste de Pruebas Unitarias
-- Actualizamos el caso de prueba `test_daily_summaries_prompt_content` en [test_endpoints.py](file:///Users/e.sanchez/PROYECTOS/porra-deportiva/backend/tests/test_endpoints.py) para verificar:
-  1. Que la clasificación general y los puntos totales de los usuarios NO se envían en el prompt a la IA.
-  2. Que el JSON final devuelto por la API antepone correctamente el título con los puntos del usuario registrados en la base de datos (`Edu Sanchez (42 pts)`).
+1. **0 puntos para desajustes totales (mismatch):** Si los equipos de un partido real de eliminatorias no coinciden con ninguna predicción (normal, coincidente o semicoincidente), el partido otorga 0 puntos por marcador.
+2. **Inversión de local/visitante:** Si los equipos coinciden pero en orden inverso (por ejemplo, Argentina-España real frente a España-Argentina predicho), el sistema normaliza el marcador predicho para compararlo justamente.
+3. **Decimales:** Se ha cambiado la puntuación en la base de datos a `float` para soportar decimales (ej. +1.5 pts por un acierto Semicoincidente).
+4. **Visualización en el cuadro y tablas de grupo:** El frontend ahora calcula y muestra tus predicciones de posiciones de grupo e identifica visualmente de dónde proceden las coincidencias.
 
 ---
 
-## Verificación Realizada
+## Qué se ha Construido
 
-### 1. Pruebas Automatizadas
-- Ejecutamos la suite de pruebas del backend y todas las comprobaciones de calidad del repositorio. Los 16 tests pasaron exitosamente y verify.sh dio luz verde:
-  ```
-  Success: no issues found in 21 source files
-  16 passed, 241 warnings in 207.10s (0:03:27)
-  ✅ verify passed
-  ```
+### 1. Base de Datos y Modelos (Backend)
+- Modificadas las columnas `User.points` y `Prediction.points_earned` a tipo float (`DOUBLE PRECISION` en PostgreSQL) en [models.py](file:///Users/e.sanchez/PROYECTOS/porra-deportiva/backend/app/models/models.py).
+- Añadidas sentencias SQL idempotentes en `init_db` en [session.py](file:///Users/e.sanchez/PROYECTOS/porra-deportiva/backend/app/db/session.py) para migrar bases de datos existentes automáticamente.
 
-### 2. Verificación Manual Dinámica
-- Ejecutamos peticiones directas (`curl`) contra la API local de desarrollo en el puerto 8008.
-- Validamos que la crónica obtenida de la base de datos contenía el título antepuesto correctamente con las puntuaciones actuales de los participantes.
-- Realizamos un test de actualización cambiando la puntuación de un usuario a `99` en la base de datos y comprobamos que la crónica mostraba inmediatamente `99 pts` en el título sin tener que volver a generarla, demostrando que la consulta es directa del repositorio de base de datos en tiempo real.
+### 2. Algoritmo de Coincidencias (Backend)
+- Implementadas las funciones `is_placeholder` y `get_round_for_match` en [match_service.py](file:///Users/e.sanchez/PROYECTOS/porra-deportiva/backend/app/services/match_service.py).
+- Modificado el bucle en `recalculate_all_users_points` en [match_service.py](file:///Users/e.sanchez/PROYECTOS/porra-deportiva/backend/app/services/match_service.py) para buscar emparejamientos reales en el cuadro del usuario (misma ronda -> 100% de puntos; ronda diferente -> 50% de puntos; orden de local/visitante invertido -> se normalizan los goles; ningún acierto -> 0 puntos).
+
+### 3. Interfaz de Usuario Premium (Frontend)
+- **Tabla de posiciones:** En [App.tsx](file:///Users/e.sanchez/PROYECTOS/porra-deportiva/frontend/src/App.tsx), calcula la clasificación del grupo usando solo tus predicciones en paralelo y muestra la nueva columna **"Pred."**. Si coincide exactamente con el rango real actual, el distintivo se ilumina en un verde premium.
+- **Cuadro interactivo:** Muestra la predicción original en texto en la parte inferior de cada tarjeta de partido (ej. `Predicción original: 🇪🇸 España 2 - 1 Alemania 🇩🇪`).
+- **Insignias de Partido Coincidente:** 
+  - Si es **Coincidente (misma ronda)**, la tarjeta se enmarca con un borde turquesa brillante, muestra `✨ PARTIDO COINCIDENTE` y los detalles del partido original del que proviene.
+  - Si es **Semicoincidente (ronda diferente)**, la tarjeta se enmarca con un borde dorado/ámbar, muestra `⚠️ PARTIDO SEMICOINCIDENTE (50% pts)` y detalla en qué ronda se predijo originalmente.
+
+---
+
+## Pruebas de Verificación y Resultados
+
+### 1. Pruebas Unitarias Robustas
+Hemos añadido el test `test_coincident_and_semicoincident_points` en [test_endpoints.py](file:///Users/e.sanchez/PROYECTOS/porra-deportiva/backend/tests/test_endpoints.py) que:
+- Inicializa un escenario de torneo y usuario.
+- Configura predicciones y simula un partido real de Dieciseisavos que coincide con una predicción de Semifinales del usuario con marcador exacto.
+- Verifica matemáticamente que el usuario obtiene exactamente **15.5 puntos** (incluyendo el medio punto con decimal del partido semicoincidente, los puntos de grupo y los puntos de avance de fase).
+- El test pasa con éxito.
+
+### 2. Verificación del Repositorio (`verify.sh`)
+Se ejecutó la suite completa de tests y análisis estáticos, pasando con éxito todas las fases:
+```bash
+$ ./scripts/verify.sh
+── backend: ruff ──
+── frontend: eslint ──
+All checks passed!
+── backend: mypy ──
+── frontend: tsc ──
+── frontend: vitest ──
+── backend: pytest ──
+................                                                         [100%]
+16 passed, 241 warnings in 209.06s (0:03:29)
+✅ verify passed
+```
