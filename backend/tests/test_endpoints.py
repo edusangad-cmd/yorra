@@ -910,16 +910,22 @@ async def test_daily_summaries_prompt_content() -> None:
         captured_prompt = prompt
         return "mocked response"
 
-    with patch("app.services.ai_summary_service.AISummaryService._call_gemini_api", side_effect=mock_call_gemini_api):
+    with patch("app.services.ai_summary_service.AISummaryService._call_gemini_api", side_effect=mock_call_gemini_api), \
+         patch("app.services.match_service.MatchService.update_matches_if_needed", return_value=False), \
+         patch("app.services.match_service.MatchService.recalculate_all_users_points", return_value=None):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             res_gen = await ac.post("/api/daily-summaries/generate", json={"date": date_str})
             assert res_gen.status_code == 200
+            data_gen = res_gen.json()
+            # Verify the API response contains the dynamic title with correct points from DB
+            assert "Crónica de la Porra - Edu Sanchez (42 pts)" in data_gen["content"]
 
     # Verify captured prompt contents
     assert captured_prompt is not None
-    # Check overall rankings (title requirement)
-    assert "Edu Sanchez (42 pts)" in captured_prompt
-    assert "TÍTULO CON PUNTOS ACUMULADOS" in captured_prompt
+    # Check overall rankings are NOT in prompt context (pulled from database dynamic repository instead)
+    assert "Edu Sanchez (42 pts)" not in captured_prompt
+    assert "CLASIFICACIÓN GENERAL ACUMULADA HASTA HOY" not in captured_prompt
+    assert "NO escribas ningún título, cabecera ni clasificación al principio" in captured_prompt
     
     # Check new glossary terms
     assert "el gitano" in captured_prompt
