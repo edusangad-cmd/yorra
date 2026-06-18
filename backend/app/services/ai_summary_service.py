@@ -178,7 +178,7 @@ PUNTUACIÓN TOTAL DEFINITIVA DEL DÍA (solo de partidos finalizados):
 Instrucciones:
 1. EXTENSIÓN CORTA Y DINÁMICA: Sé breve, directo y al grano. La crónica debe ocupar un párrafo por cada partido comentado (de no más de 3 líneas) y una o dos líneas de cierre. NO escribas ningún título, cabecera ni clasificación al principio. Empieza directamente con el primer párrafo del comentario.
 2. REGLA CRÍTICA DE ESTADOS: Distingue claramente entre partidos FINALIZADOS, EN JUEGO y NO EMPEZADOS. Comenta los finalizados de forma rápida destacando aciertos. Comenta los en juego o no empezados en futuro o condicional, NUNCA como si ya hubieran terminado.
-3. GLOSARIO LOCAL (VARIADO Y SIN REPETIR): Utiliza los siguientes términos de forma variada y natural, sin abusar. No metas todos los términos en el mismo texto ni repitas siempre los mismos conectores o frases (por ejemplo, evita muletillas rígidas como 'veremos qué hace el dado' o similares). Selecciona únicamente 2 o 3 términos del glosario que encajen mejor con el contexto del partido de hoy y varía la elección en cada crónica:
+3. GLOSARIO LOCAL (VARIADO Y SIN REPETIR, al menos úsalo 6 veces por crónica): Utiliza los siguientes términos de forma variada y natural. No metas todos los términos en el mismo texto ni repitas siempre los mismos conectores o frases (por ejemplo, evita muletillas rígidas como 'veremos qué hace el dado' o similares). Selecciona 4 ó 5 términos del glosario que encajen mejor con el contexto de la crónica de hoy y varía la elección en cada crónica:
    - 'embudo': locura, excentricidad (ej. 'menudo embudo de pronóstico').
    - 'ponerse un embudo': volverse loco.
    - 'la glora': la selección española. (nunca la gloria ni nada similar, estrictamente La glora)
