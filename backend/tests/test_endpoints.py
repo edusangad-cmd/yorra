@@ -474,6 +474,212 @@ async def test_bracket_advancement_points() -> None:
 
 
 @pytest.mark.asyncio
+async def test_coincident_and_semicoincident_points() -> None:
+    # Cleanup user 999
+    async with async_session_maker() as session:
+        pred_res = await session.execute(
+            select(Prediction).where(Prediction.user_id == 999)  # type: ignore[arg-type]
+        )
+        for pred in pred_res.scalars().all():
+            await session.delete(pred)
+        user = await session.get(User, 999)
+        if user:
+            await session.delete(user)
+        await session.commit()
+
+    # Setup matches
+    async with async_session_maker() as session:
+        all_matches_res = await session.execute(select(Match))
+        all_matches = list(all_matches_res.scalars().all())
+        assert len(all_matches) > 0
+
+        # Save original states
+        from typing import Any
+        orig_states: dict[int, dict[str, Any]] = {}
+        for m in all_matches:
+            orig_states[m.id] = {
+                "home_team": m.home_team,
+                "away_team": m.away_team,
+                "home_score": m.home_score,
+                "away_score": m.away_score,
+                "status": m.status,
+                "group": m.group,
+                "stage": m.stage,
+            }
+
+        try:
+            # Clear all matches scores and status first
+            for m in all_matches:
+                m.home_score = None
+                m.away_score = None
+                m.status = "NS"
+
+            # Seed Real group matches and Match 73
+            # Group A real results -> 1st México, 2nd Corea del Sur
+            # Group B real results -> 1st Suiza, 2nd Canadá
+            match_data: dict[int, dict[str, Any]] = {
+                1: {"home": "México", "away": "Sudáfrica", "h_score": 2, "a_score": 1, "group": "A", "stage": "group"},
+                2: {"home": "Corea del Sur", "away": "República Checa", "h_score": 1, "a_score": 0, "group": "A", "stage": "group"},
+                25: {"home": "México", "away": "Corea del Sur", "h_score": 2, "a_score": 0, "group": "A", "stage": "group"},
+                28: {"home": "República Checa", "away": "Sudáfrica", "h_score": 1, "a_score": 2, "group": "A", "stage": "group"},
+                51: {"home": "Sudáfrica", "away": "Corea del Sur", "h_score": 0, "a_score": 2, "group": "A", "stage": "group"},
+                52: {"home": "República Checa", "away": "México", "h_score": 1, "a_score": 3, "group": "A", "stage": "group"},
+                
+                3: {"home": "Canadá", "away": "Bosnia y Herzegovina", "h_score": 2, "a_score": 0, "group": "B", "stage": "group"},
+                8: {"home": "Catar", "away": "Suiza", "h_score": 1, "a_score": 2, "group": "B", "stage": "group"},
+                26: {"home": "Suiza", "away": "Bosnia y Herzegovina", "h_score": 1, "a_score": 0, "group": "B", "stage": "group"},
+                27: {"home": "Canadá", "away": "Catar", "h_score": 3, "a_score": 0, "group": "B", "stage": "group"},
+                53: {"home": "Bosnia y Herzegovina", "away": "Catar", "h_score": 1, "a_score": 2, "group": "B", "stage": "group"},
+                54: {"home": "Suiza", "away": "Canadá", "h_score": 1, "a_score": 0, "group": "B", "stage": "group"},
+                
+                # Real Match 73: Corea del Sur vs Canadá (3-1)
+                73: {"home": "Corea del Sur", "away": "Canadá", "h_score": 3, "a_score": 1, "group": "R32", "stage": "r32"},
+            }
+
+            for mid, info in match_data.items():
+                db_m = next((x for x in all_matches if x.id == mid), None)
+                assert db_m is not None
+                db_m.home_team = info["home"]
+                db_m.away_team = info["away"]
+                db_m.home_score = info["h_score"]
+                db_m.away_score = info["a_score"]
+                db_m.status = "FT"
+                db_m.group = info["group"]
+                db_m.stage = info["stage"]
+
+            session.add_all(all_matches)
+
+            user_obj = User(
+                id=999,
+                telegram_id="test_user_bracket_coinc",
+                full_name="Coincident Test User",
+                points=0.0
+            )
+            session.add(user_obj)
+            await session.commit()
+
+            # User predictions:
+            # - Group A: Corea 1st, México 2nd (so Corea plays in Match 79, which goes to 92 -> 99 -> 102)
+            # - Group B: Canadá 1st, Suiza 2nd (so Canadá plays in Match 85, which goes to 96 -> 100 -> 102)
+            # In user's simulated bracket, Corea and Canadá will play in Semifinals Match 102.
+            # User predicts Match 102: Corea del Sur 3 - Canadá 1 (which matches the real score of Match 73).
+            # This is a Semi-Coincident Match for Match 73, so user should earn 1.5 points.
+            
+            # Predict Group A: Corea wins all (9 pts), México wins others (6 pts)
+            # Predict Group B: Canadá wins all (9 pts), Suiza wins others (6 pts)
+            user_preds = {
+                # Group A
+                1: {"h": 1, "a": 2}, # México vs Sudáfrica -> Sudáfrica (México loses)
+                2: {"h": 3, "a": 0}, # Corea vs Checa -> Corea (Corea wins)
+                25: {"h": 0, "a": 3}, # México vs Corea -> Corea (Corea wins, México loses)
+                28: {"h": 0, "a": 2}, # Checa vs Sudáfrica -> Sudáfrica
+                51: {"h": 0, "a": 3}, # Sudáfrica vs Corea -> Corea (Corea wins)
+                52: {"h": 1, "a": 2}, # Checa vs México -> México
+                
+                # Group B
+                3: {"h": 3, "a": 0}, # Canadá vs Bosnia -> Canadá (Canadá wins)
+                8: {"h": 0, "a": 2}, # Catar vs Suiza -> Suiza
+                26: {"h": 1, "a": 2}, # Suiza vs Bosnia -> Bosnia
+                27: {"h": 3, "a": 0}, # Canadá vs Catar -> Canadá (Canadá wins)
+                53: {"h": 0, "a": 2}, # Bosnia vs Catar -> Catar
+                54: {"h": 0, "a": 3}, # Suiza vs Canadá -> Canadá (Canadá wins)
+                
+                # Knockout stages: propagate Corea and Canadá
+                79: {"h": 2, "a": 0}, # Corea (1A) vs opponent -> Corea wins, goes to 92
+                85: {"h": 2, "a": 0}, # Canadá (1B) vs opponent -> Canadá wins, goes to 96
+                92: {"h": 2, "a": 0}, # Corea vs opponent -> Corea wins, goes to 99
+                96: {"h": 2, "a": 0}, # Canadá vs opponent -> Canadá wins, goes to 100
+                99: {"h": 2, "a": 0}, # Corea vs opponent -> Corea wins, goes to 102
+                100: {"h": 2, "a": 0}, # Canadá vs opponent -> Canadá wins, goes to 102
+                
+                # Match 102 (Semifinals): Corea vs Canadá -> 3-1.
+                # Since the real match is Corea vs Canadá in Match 73 (3-1), this is a Semi-Coincident exact match (+1.5 pts).
+                102: {"h": 3, "a": 1},
+                
+                # Real Match 73 prediction (Mismatch/Sweden vs Nigeria placeholder originally, gets 0 pts because teams don't match)
+                73: {"h": 0, "a": 0},
+            }
+
+            preds_to_add = []
+            for mid, scores in user_preds.items():
+                preds_to_add.append(
+                    Prediction(
+                        user_id=999,
+                        match_id=mid,
+                        home_score=scores["h"],
+                        away_score=scores["a"],
+                        points_earned=0.0
+                    )
+                )
+            session.add_all(preds_to_add)
+            await session.commit()
+
+            from app.services.match_service import MatchService
+            await MatchService.recalculate_all_users_points(session)
+            await session.commit()
+
+            await session.refresh(user_obj)
+            
+            # User points calculation:
+            # - Group Stage matches:
+            #   User predicted Group A/B scores that do NOT match the real Group A/B results seeded above.
+            #   Let's check if they got any correct outcome (1 pt) or exact score (3 pts):
+            #   Real Match 1: México 2 - 1 Sudáfrica. User: México 1 - 2 Sudáfrica. (0 pts)
+            #   Real Match 2: Corea 1 - 0 Checa. User: Corea 3 - 0 Checa. (Outcome: +1 pt)
+            #   Real Match 25: México 2 - 0 Corea. User: México 0 - 3 Corea. (0 pts)
+            #   Real Match 28: Checa 1 - 2 Sudáfrica. User: Checa 0 - 2 Sudáfrica. (Outcome: +1 pt)
+            #   Real Match 51: Sudáfrica 0 - 2 Corea. User: Sudáfrica 0 - 3 Corea. (Outcome: +1 pt)
+            #   Real Match 52: Checa 1 - 3 México. User: Checa 1 - 2 México. (Outcome: +1 pt)
+            #   Real Match 3: Canadá 2 - 0 Bosnia. User: Canadá 3 - 0 Bosnia. (Outcome: +1 pt)
+            #   Real Match 8: Catar 1 - 2 Suiza. User: Catar 0 - 2 Suiza. (Outcome: +1 pt)
+            #   Real Match 26: Suiza 1 - 0 Bosnia. User: Suiza 1 - 2 Bosnia. (0 pts)
+            #   Real Match 27: Canadá 3 - 0 Catar. User: Canadá 3 - 0 Catar. (Exact: +3 pts)
+            #   Real Match 53: Bosnia 1 - 2 Catar. User: Bosnia 0 - 2 Catar. (Outcome: +1 pt)
+            #   Real Match 54: Suiza 1 - 0 Canadá. User: Suiza 0 - 3 Canadá. (0 pts)
+            #   Group Stage Score prediction points = 1 + 1 + 1 + 1 + 1 + 1 + 3 + 1 = 10 pts.
+            # - Knockout Match 73:
+            #   Real Match 73: Corea vs Canadá (3-1).
+            #   User predicted Corea vs Canadá in Match 102 as 3-1.
+            #   This is a Semi-Coincident Match (different round) with exact score!
+            #   Points: 3.0 * 0.5 = 1.5 pts.
+            # - Advancement points (Fases):
+            #   Real R32: {"Corea del Sur", "Canadá"}
+            #   User R32: {"Corea del Sur", "Canadá"} (since both qualified in user predictions too, though in different ranks)
+            #   Intersection: {"Corea del Sur", "Canadá"} -> 2 * 1 = 2 pts.
+            #   Real R16: {"Corea del Sur"} (since Corea won Match 73)
+            #   User R16: {"Corea del Sur", "Canadá"} (both won their R32 matches 79 and 85 in prediction)
+            #   Intersection: {"Corea del Sur"} -> 1 * 2 = 2 pts.
+            #   Total expected points = 10 (group scores) + 1.5 (semi-coincident score) + 2 (R32 adv) + 2 (R16 adv) = 15.5 pts.
+            
+            assert user_obj.points == 15.5
+
+        finally:
+            # Cleanup
+            pred_res2 = await session.execute(
+                select(Prediction).where(Prediction.user_id == 999)  # type: ignore[arg-type]
+            )
+            for pred in pred_res2.scalars().all():
+                await session.delete(pred)
+            user_to_del = await session.get(User, 999)
+            if user_to_del:
+                await session.delete(user_to_del)
+
+            # Restore original matches
+            for m in all_matches:
+                state = orig_states[m.id]
+                m.home_team = str(state["home_team"])
+                m.away_team = str(state["away_team"])
+                m.home_score = state["home_score"]
+                m.away_score = state["away_score"]
+                m.status = str(state["status"])
+                m.group = str(state["group"]) if state["group"] is not None else None
+                m.stage = str(state["stage"]) if state["stage"] is not None else None
+                session.add(m)
+
+            await session.commit()
+
+
+@pytest.mark.asyncio
 async def test_reset_endpoints() -> None:
     # 1. Setup user, match, prediction, and tournament prediction
     async with async_session_maker() as session:

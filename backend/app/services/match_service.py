@@ -28,6 +28,34 @@ def calculate_points(pred_home: int, pred_away: int, real_home: int, real_away: 
     return 0
 
 
+def is_placeholder(team_name: str | None) -> bool:
+    if not team_name:
+        return True
+    return (
+        team_name.startswith("1º ") or
+        team_name.startswith("2º ") or
+        team_name.startswith("3º ") or
+        team_name.startswith("Ganador ") or
+        team_name.startswith("Perdedor ")
+    )
+
+
+def get_round_for_match(match_id: int) -> str | None:
+    if 73 <= match_id <= 88:
+        return "r32"
+    if 89 <= match_id <= 96:
+        return "r16"
+    if 97 <= match_id <= 100:
+        return "qf"
+    if 101 <= match_id <= 102:
+        return "sf"
+    if match_id == 103:
+        return "third"
+    if match_id == 104:
+        return "final"
+    return None
+
+
 def compare_teams(a: dict[str, Any], b: dict[str, Any]) -> int:
     if b["points"] != a["points"]:
         return int(b["points"] - a["points"])
@@ -443,25 +471,81 @@ class MatchService:
             # Fetch user predictions
             pred_res = await db.execute(select(Prediction).where(Prediction.user_id == u_id))  # type: ignore[arg-type]
             preds = list(pred_res.scalars().all())
-
-            # A. Match predictions points
-            match_points = 0
-            for p in preds:
-                m = matches_map.get(p.match_id)
-                if m and m.status == "FT" and m.home_score is not None and m.away_score is not None:
-                    p.points_earned = calculate_points(
-                        p.home_score, p.away_score, m.home_score, m.away_score
-                    )
-                else:
-                    p.points_earned = 0
-                db.add(p)
-                match_points += p.points_earned
+            preds_map = {p.match_id: p for p in preds}
 
             # B. Bracket advancement points
             user_scores: dict[int, tuple[int | None, int | None]] = {p.match_id: (p.home_score, p.away_score) for p in preds}
             user_penalties = {p.match_id: p.penalty_winner_home for p in preds}
 
             user_resolved = resolve_bracket_teams(matches, user_scores, user_penalties)
+
+            # A. Match predictions points
+            match_points = 0.0
+            for p in preds:
+                m = matches_map.get(p.match_id)
+                if not m or m.status != "FT" or m.home_score is None or m.away_score is None:
+                    p.points_earned = 0.0
+                    db.add(p)
+                    continue
+
+                if m.id < 73:
+                    p.points_earned = float(calculate_points(
+                        p.home_score, p.away_score, m.home_score, m.away_score
+                    ))
+                else:
+                    real_home = real_resolved.get(m.id, {}).get("home")
+                    real_away = real_resolved.get(m.id, {}).get("away")
+
+                    points_earned = 0.0
+                    if real_home and real_away and not is_placeholder(real_home) and not is_placeholder(real_away):
+                        real_set = {real_home, real_away}
+
+                        # Find matching user predictions
+                        candidates = []
+                        for m_pred_id in range(73, 105):
+                            pred_home = user_resolved.get(m_pred_id, {}).get("home")
+                            pred_away = user_resolved.get(m_pred_id, {}).get("away")
+                            if pred_home and pred_away and not is_placeholder(pred_home) and not is_placeholder(pred_away):
+                                if {pred_home, pred_away} == real_set:
+                                    candidates.append(m_pred_id)
+
+                        if candidates:
+                            round_real = get_round_for_match(m.id)
+                            same_round_candidates = [c for c in candidates if get_round_for_match(c) == round_real]
+
+                            best_pred_id = None
+                            is_same_round = False
+
+                            if same_round_candidates:
+                                if m.id in same_round_candidates:
+                                    best_pred_id = m.id
+                                else:
+                                    best_pred_id = same_round_candidates[0]
+                                is_same_round = True
+                            else:
+                                best_pred_id = candidates[0]
+                                is_same_round = False
+
+                            p_pred = preds_map.get(best_pred_id)
+                            if p_pred:
+                                pred_home_team = user_resolved[best_pred_id]["home"]
+                                if pred_home_team == real_home:
+                                    p_home_score = p_pred.home_score
+                                    p_away_score = p_pred.away_score
+                                else:
+                                    p_home_score = p_pred.away_score
+                                    p_away_score = p_pred.home_score
+
+                                raw_points = calculate_points(p_home_score, p_away_score, m.home_score, m.away_score)
+                                if is_same_round:
+                                    points_earned = float(raw_points)
+                                else:
+                                    points_earned = float(raw_points) * 0.5
+
+                    p.points_earned = points_earned
+
+                db.add(p)
+                match_points += p.points_earned
 
             user_r32 = get_teams_for_matches(user_resolved, range(73, 89))
             user_r16 = get_teams_for_matches(user_resolved, range(89, 97))

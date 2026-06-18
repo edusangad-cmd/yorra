@@ -26,6 +26,8 @@ async def init_db() -> None:
         await conn.execute(text('ALTER TABLE match ADD COLUMN IF NOT EXISTS stage VARCHAR;'))
         await conn.execute(text('ALTER TABLE prediction ADD COLUMN IF NOT EXISTS penalty_winner_home BOOLEAN;'))
         await conn.execute(text('ALTER TABLE tournamentprediction ADD COLUMN IF NOT EXISTS best_goalkeeper VARCHAR;'))
+        await conn.execute(text('ALTER TABLE "user" ALTER COLUMN points TYPE DOUBLE PRECISION;'))
+        await conn.execute(text('ALTER TABLE prediction ALTER COLUMN points_earned TYPE DOUBLE PRECISION;'))
 
 
 
