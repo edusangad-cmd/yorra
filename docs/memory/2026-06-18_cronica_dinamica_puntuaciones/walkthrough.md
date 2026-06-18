@@ -25,6 +25,8 @@ Hemos completado la implementación de las funciones necesarias para realizar un
 - **Insignias de Partido Coincidente:** 
   - Si es **Coincidente (misma ronda)**, la tarjeta se enmarca con un borde turquesa brillante, muestra `✨ PARTIDO COINCIDENTE` y los detalles del partido original del que proviene.
   - Si es **Semicoincidente (ronda diferente)**, la tarjeta se enmarca con un borde dorado/ámbar, muestra `⚠️ PARTIDO SEMICOINCIDENTE (50% pts)` y detalla en qué ronda se predijo originalmente.
+- **Cuadro predictivo dinámico (Fase Final):** Si el partido real aún no se ha jugado (`status !== "FT"`), el cuadro de la Fase Final en lugar de mostrar marcadores de posición genéricos (ej. `1º Grupo A`, `Ganador Partido 74`), muestra dinámicamente los países resultantes de tus predicciones de grupos y rondas eliminatorias anteriores. Esto permite previsualizar y editar el cuadro completo de tus predicciones de forma fluida.
+- **Pestaña de Reglas actualizada:** Añadida una nueva sección "Reglas de Emparejamiento en Fases Eliminatorias" que explica detalladamente a los participantes cómo se calculan los partidos coincidentes, semicoincidentes y desajustes.
 
 ---
 
@@ -49,6 +51,6 @@ All checks passed!
 ── frontend: vitest ──
 ── backend: pytest ──
 ................                                                         [100%]
-16 passed, 241 warnings in 209.06s (0:03:29)
+16 passed, 241 warnings in 249.92s (0:04:09)
 ✅ verify passed
 ```
