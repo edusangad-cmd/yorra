@@ -15,6 +15,15 @@ logger = logging.getLogger(__name__)
 
 class AISummaryService:
     @staticmethod
+    async def get_overall_rankings_str(db: AsyncSession) -> str:
+        """Helper to fetch overall rankings directly from the database."""
+        user_query = select(User).order_by(desc(User.points))  # type: ignore[arg-type]
+        user_result = await db.execute(user_query)
+        all_users = user_result.scalars().all()
+        overall_rankings = [f"{u.full_name} ({u.points} pts)" for u in all_users]
+        return ", ".join(overall_rankings)
+
+    @staticmethod
     async def generate_daily_summary(db: AsyncSession, summary_date: str) -> DailySummary:
         """
         Generates and saves the daily summary for the given date (format YYYY-MM-DD).
@@ -144,11 +153,7 @@ class AISummaryService:
             rankings_today.append("Nadie ha sumado puntos definitivos hoy.")
 
         # Get overall leaderboard rankings (overall points)
-        user_query = select(User).order_by(desc(User.points))  # type: ignore[arg-type]
-        user_result = await db.execute(user_query)
-        all_users = user_result.scalars().all()
-        overall_rankings = [f"{u.full_name} ({u.points} pts)" for u in all_users]
-        overall_rankings_str = ", ".join(overall_rankings)
+        overall_rankings_str = await AISummaryService.get_overall_rankings_str(db)
 
         # Build prompt
         pending_section = ""
@@ -177,14 +182,11 @@ PUNTUACIÓN TOTAL DEFINITIVA DEL DÍA (solo de partidos finalizados):
 {rankings_section}
 
 Instrucciones:
-1. EXTENSIÓN CORTA: Sé breve, directo y al grano. La crónica debe ocupar: una o dos líneas de título, un párrafo por cada partido comentado de no más de 3 líneas, una o dos líneas de cierre.
-2. TÍTULO CON PUNTOS ACUMULADOS: El título en la primera línea de la crónica debe incluir obligatoriamente el resultado general de puntos acumulados entre todos los participantes. 
-   - IMPORTANTE: Las puntuaciones de la sección 'CLASIFICACIÓN GENERAL ACUMULADA HASTA HOY' ya están completamente actualizadas y YA INCLUYEN los puntos ganados hoy. NO les sumes nada más, limítate a copiar esas puntuaciones exactas para el título sin realizar ninguna operación matemática (ej. si dice 'Edu (42 pts)', escribe exactamente 'Edu 42 pts' en el título, no sumes hoy a 42).
-2. TÍTULO CON PUNTOS ACUMULADOS: El título en la primera línea de la crónica debe incluir obligatoriamente el resultado general de puntos acumulados entre todos los participantes (la clasificación general actual). Sé creativo al redactarlo, pero asegúrate de que los nombres de los participantes y sus puntuaciones acumuladas de la porra se lean con total claridad en el título (ej. 'Crónica de la Porra - Edu 15 pts, Juan 10 pts, Pepe 8 pts').
-3. REGLA CRÍTICA DE ESTADOS: Distingue claramente entre partidos FINALIZADOS, EN JUEGO y NO EMPEZADOS.
+1. EXTENSIÓN CORTA: Sé breve, directo y al grano. La crónica debe ocupar: un párrafo por cada partido comentado de no más de 3 líneas, y una o dos líneas de cierre. NO escribas ningún título ni cabecera al principio (por ejemplo, no pongas cosas como 'Crónica de hoy' ni la clasificación de participantes), empieza directamente con el primer párrafo del comentario, ya que el título con la clasificación real y sus puntos exactos se añadirá automáticamente de forma externa por el servidor.
+2. REGLA CRÍTICA DE ESTADOS: Distingue claramente entre partidos FINALIZADOS, EN JUEGO y NO EMPEZADOS.
    - Para partidos FINALIZADOS: Comenta el resultado definitivo de forma rápida y destaca aciertos de marcador exacto.
    - Para partidos EN JUEGO o NO EMPEZADOS: Habla de ellos en futuro o condicional (ej. 'Edu va ganando..., pero todo puede cambiar si Uganda gana a México...'). NUNCA los comentes como si ya hubieran terminado.
-4. GLOSARIO LOCAL (úsalos con moderación y gracia, sin abusar):
+3. GLOSARIO LOCAL (úsalos con moderación y gracia, sin abusar):
    - 'embudo': locura, excentricidad (ej. 'menudo embudo de pronóstico').
    - 'ponerse un embudo': volverse loco.
    - 'la glora': la selección española. (nunca la gloria ni nada similar, estrictamente La glora)
@@ -204,12 +206,12 @@ Instrucciones:
    - 'la yorra' o 'yorrón' o 'yorrazo': la propia porra en la que participamos.
    - 'llevar goles': ser goleado (ej. 'han llevado goles').
    - 'el filmo': preparador físico de categorías bajas con pelo de rata y muchas ínfulas, que en sus fantasías prepotentes diría que conoce a todos los jugadores del mundial.
-5. TONO Y EXPRESIONES PARTICULARES:
+4. TONO Y EXPRESIONES PARTICULARES:
    - Cuando algo esté bien, di "qué bello" o "og qué bello".
    - Dirígete o habla de los participantes usando términos como "macho" o "niño" (ej. "og qué bello el gol del cé, niño", "macho, menuda jugada").
-6. Escribe en español de España de manera natural, cercana y divertida.
-7. NO USES ASTERISCOS PARA DIFERENCIAR O DESTACAR NADA: es decir, que no se vean diferencias estilísticas dentro de la crónica sino un texto corrido y natural.
-8. MEMORIA Y REPASO DE PARTIDOS PENDIENTES (OBLIGATORIO Y CON NOMBRES Y PUNTOS CONCRETOS):
+5. Escribe en español de España de manera natural, cercana y divertida.
+6. NO USES ASTERISCOS PARA DIFERENCIAR O DESTACAR NADA: es decir, que no se vean diferencias estilísticas dentro de la crónica sino un texto corrido y natural.
+7. MEMORIA Y REPASO DE PARTIDOS PENDIENTES (OBLIGATORIO Y CON NOMBRES Y PUNTOS CONCRETOS):
    - Revisa la 'CRÓNICA DEL DÍA ANTERIOR'. Cruza los partidos de 'PARTIDOS Y PRONÓSTICOS DE AYER' con dicho texto.
    - Si en la crónica del día anterior un partido ya aparecía descrito como finalizado/terminado de forma definitiva (comentando su marcador o resultado final), ¡NO vuelvas a hablar de él ni a mencionarlo hoy!
    - Solo debes repasar los partidos de ayer que en la crónica anterior aparecían como 'EN JUEGO', 'NO EMPEZADOS', con resultados provisionales, o que simplemente no aparecían en el texto.
