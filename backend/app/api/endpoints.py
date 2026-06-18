@@ -531,11 +531,13 @@ async def get_daily_summaries(
         select(DailySummary).order_by(desc(DailySummary.summary_date))
     )
     summaries = result.scalars().all()
+    overall_rankings_str = await AISummaryService.get_overall_rankings_str(db)
+    title_prefix = f"Crónica de la Porra - {overall_rankings_str}\n\n"
     return [
         {
             "id": s.id,
             "summary_date": s.summary_date,
-            "content": s.content,
+            "content": f"{title_prefix}{s.content}",
             "created_at": s.created_at.isoformat() + "Z",
         }
         for s in summaries
@@ -553,10 +555,12 @@ async def generate_daily_summary(
 ) -> dict[str, Any]:
     try:
         summary = await AISummaryService.generate_daily_summary(db, payload.date)
+        overall_rankings_str = await AISummaryService.get_overall_rankings_str(db)
+        title_prefix = f"Crónica de la Porra - {overall_rankings_str}\n\n"
         return {
             "id": summary.id,
             "summary_date": summary.summary_date,
-            "content": summary.content,
+            "content": f"{title_prefix}{summary.content}",
             "created_at": summary.created_at.isoformat() + "Z",
             "success": True,
         }
