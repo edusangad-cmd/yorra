@@ -98,7 +98,7 @@ class AISummaryService:
 
         # Gather results and predictions data for today
         match_reports = []
-        user_scores_today: dict[int, int] = {}  # user_id -> points_today
+        user_scores_today: dict[int, float] = {}  # user_id -> points_today
         user_names = {}
 
         for match in matches:

@@ -509,11 +509,13 @@ function App() {
   };
 
   // Standings & Bracket Calculations
-  const { standings, resolvedBracket } = useMemo(() => {
+  const { standings, resolvedBracket, predictedStandings, predictedResolvedBracket } = useMemo(() => {
     const activePredictions = viewingUser ? viewedUserPredictions : predictions;
 
     // 1. Calculate Group Standings
     const groupStandings: Record<string, Record<string, TeamStanding>> = {};
+    const predictedGroupStandings: Record<string, Record<string, TeamStanding>> = {};
+
     matches.forEach((m) => {
       if (m.stage === "group" && m.group) {
         const g = m.group;
@@ -526,12 +528,24 @@ function App() {
         if (!groupStandings[g][m.away_team]) {
           groupStandings[g][m.away_team] = { team: m.away_team, points: 0, played: 0, goalsFor: 0, goalsAgainst: 0, goalDiff: 0 };
         }
+
+        if (!predictedGroupStandings[g]) {
+          predictedGroupStandings[g] = {};
+        }
+        if (!predictedGroupStandings[g][m.home_team]) {
+          predictedGroupStandings[g][m.home_team] = { team: m.home_team, points: 0, played: 0, goalsFor: 0, goalsAgainst: 0, goalDiff: 0 };
+        }
+        if (!predictedGroupStandings[g][m.away_team]) {
+          predictedGroupStandings[g][m.away_team] = { team: m.away_team, points: 0, played: 0, goalsFor: 0, goalsAgainst: 0, goalDiff: 0 };
+        }
       }
     });
 
     matches.forEach((m) => {
       if (m.stage === "group" && m.group) {
         const g = m.group;
+        
+        // A. Display/Hybrid Standings
         let homeGoals: number | null = null;
         let awayGoals: number | null = null;
 
@@ -571,12 +585,57 @@ function App() {
             away.points += 1;
           }
         }
+
+        // B. 100% Predicted Standings
+        let predHomeGoals: number | null = null;
+        let predAwayGoals: number | null = null;
+        if (draft && draft.home !== "" && draft.away !== "") {
+          predHomeGoals = parseInt(draft.home, 10);
+          predAwayGoals = parseInt(draft.away, 10);
+        } else if (pred) {
+          predHomeGoals = pred.home_score;
+          predAwayGoals = pred.away_score;
+        }
+
+        if (predHomeGoals !== null && predAwayGoals !== null) {
+          const home = predictedGroupStandings[g][m.home_team];
+          const away = predictedGroupStandings[g][m.away_team];
+
+          home.played += 1;
+          away.played += 1;
+          home.goalsFor += predHomeGoals;
+          home.goalsAgainst += predAwayGoals;
+          away.goalsFor += predAwayGoals;
+          away.goalsAgainst += predHomeGoals;
+
+          home.goalDiff = home.goalsFor - home.goalsAgainst;
+          away.goalDiff = away.goalsFor - away.goalsAgainst;
+
+          if (predHomeGoals > predAwayGoals) {
+            home.points += 3;
+          } else if (predHomeGoals < predAwayGoals) {
+            away.points += 3;
+          } else {
+            home.points += 1;
+            away.points += 1;
+          }
+        }
       }
     });
 
     const sortedStandings: Record<string, TeamStanding[]> = {};
     Object.keys(groupStandings).forEach((g) => {
       sortedStandings[g] = Object.values(groupStandings[g]).sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points;
+        if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
+        if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+        return a.team.localeCompare(b.team);
+      });
+    });
+
+    const sortedPredictedStandings: Record<string, TeamStanding[]> = {};
+    Object.keys(predictedGroupStandings).forEach((g) => {
+      sortedPredictedStandings[g] = Object.values(predictedGroupStandings[g]).sort((a, b) => {
         if (b.points !== a.points) return b.points - a.points;
         if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
         if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
@@ -809,7 +868,196 @@ function App() {
     resolved[103] = { home: getLoser(101), away: getLoser(102) };
     resolved[104] = { home: getWinner(101), away: getWinner(102) };
 
-    return { standings: sortedStandings, resolvedBracket: resolved };
+    // 3. Resolve 100% Predictions Bracket
+    const predictedResolved: Record<number, { home: string; away: string }> = {};
+
+    matches.forEach((m) => {
+      if (m.stage === "group") {
+        predictedResolved[m.id] = { home: m.home_team, away: m.away_team };
+      }
+    });
+
+    const getPredictedWinner = (matchId: number): string => {
+      const m = matches.find((x) => x.id === matchId);
+      if (!m) return `Ganador Partido ${matchId}`;
+
+      const draft = viewingUser ? null : editingScores[matchId];
+      const draftPenaltyWinnerHome = viewingUser ? undefined : editingPenaltyWinners[matchId];
+      const pred = activePredictions[matchId];
+
+      if (draft && draft.home !== "" && draft.away !== "") {
+        const h = parseInt(draft.home, 10);
+        const a = parseInt(draft.away, 10);
+        if (h > a) return predictedResolved[matchId]?.home || m.home_team;
+        if (h < a) return predictedResolved[matchId]?.away || m.away_team;
+        
+        if (draftPenaltyWinnerHome !== undefined) {
+          return draftPenaltyWinnerHome
+            ? (predictedResolved[matchId]?.home || m.home_team)
+            : (predictedResolved[matchId]?.away || m.away_team);
+        }
+        return predictedResolved[matchId]?.home || m.home_team;
+      }
+
+      if (pred) {
+        if (pred.home_score > pred.away_score) {
+          return predictedResolved[matchId]?.home || m.home_team;
+        }
+        if (pred.home_score < pred.away_score) {
+          return predictedResolved[matchId]?.away || m.away_team;
+        }
+        if (pred.penalty_winner_home !== null && pred.penalty_winner_home !== undefined) {
+          return pred.penalty_winner_home
+            ? (predictedResolved[matchId]?.home || m.home_team)
+            : (predictedResolved[matchId]?.away || m.away_team);
+        }
+        return predictedResolved[matchId]?.home || m.home_team;
+      }
+      return `Ganador Partido ${matchId}`;
+    };
+
+    const getPredictedLoser = (matchId: number): string => {
+      const m = matches.find((x) => x.id === matchId);
+      if (!m) return `Perdedor Partido ${matchId}`;
+
+      const draft = viewingUser ? null : editingScores[matchId];
+      const draftPenaltyWinnerHome = viewingUser ? undefined : editingPenaltyWinners[matchId];
+      const pred = activePredictions[matchId];
+
+      if (draft && draft.home !== "" && draft.away !== "") {
+        const h = parseInt(draft.home, 10);
+        const a = parseInt(draft.away, 10);
+        if (h > a) return predictedResolved[matchId]?.away || m.away_team;
+        if (h < a) return predictedResolved[matchId]?.home || m.home_team;
+        
+        if (draftPenaltyWinnerHome !== undefined) {
+          return draftPenaltyWinnerHome
+            ? (predictedResolved[matchId]?.away || m.away_team)
+            : (predictedResolved[matchId]?.home || m.home_team);
+        }
+        return predictedResolved[matchId]?.away || m.away_team;
+      }
+
+      if (pred) {
+        if (pred.home_score > pred.away_score) {
+          return predictedResolved[matchId]?.away || m.away_team;
+        }
+        if (pred.home_score < pred.away_score) {
+          return predictedResolved[matchId]?.home || m.home_team;
+        }
+        if (pred.penalty_winner_home !== null && pred.penalty_winner_home !== undefined) {
+          return pred.penalty_winner_home
+            ? (predictedResolved[matchId]?.away || m.away_team)
+            : (predictedResolved[matchId]?.home || m.home_team);
+        }
+        return predictedResolved[matchId]?.away || m.away_team;
+      }
+      return `Perdedor Partido ${matchId}`;
+    };
+
+    const predGroup1st: Record<string, string> = {};
+    const predGroup2nd: Record<string, string> = {};
+    const predGroup3rdList: { group: string; team: string; points: number; goalDiff: number; goalsFor: number }[] = [];
+
+    Object.entries(sortedPredictedStandings).forEach(([g, list]) => {
+      if (list[0]) predGroup1st[g] = list[0].team;
+      if (list[1]) predGroup2nd[g] = list[1].team;
+      if (list[2]) {
+        predGroup3rdList.push({
+          group: g,
+          team: list[2].team,
+          points: list[2].points,
+          goalDiff: list[2].goalDiff,
+          goalsFor: list[2].goalsFor,
+        });
+      }
+    });
+
+    const predSorted3rd = [...predGroup3rdList].sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
+      if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+      return a.group.localeCompare(b.group);
+    });
+
+    const predOpponents3rd: Record<string, string> = {};
+    if (predSorted3rd.length >= 8) {
+      const qualifiedGroups = predSorted3rd.slice(0, 8).map((x) => x.group);
+      const combKey = [...qualifiedGroups].sort().join("");
+      const combMap = THIRD_PLACE_COMBINATIONS[combKey];
+      if (combMap) {
+        const thirdTeams: Record<string, string> = {};
+        predSorted3rd.forEach((item) => {
+          thirdTeams[item.group] = item.team;
+        });
+        const winners = ["1A", "1B", "1D", "1E", "1G", "1I", "1K", "1L"];
+        winners.forEach((winner) => {
+          const target3rdGroup = combMap[winner]?.[1];
+          if (target3rdGroup && thirdTeams[target3rdGroup]) {
+            predOpponents3rd[winner] = thirdTeams[target3rdGroup];
+          }
+        });
+      }
+    }
+
+    // Fallbacks
+    if (!predOpponents3rd["1E"]) predOpponents3rd["1E"] = "3º Grupo A/B/C/D/F";
+    if (!predOpponents3rd["1I"]) predOpponents3rd["1I"] = "3º Grupo C/D/F/G/H";
+    if (!predOpponents3rd["1A"]) predOpponents3rd["1A"] = "3º Grupo C/E/F/H/I";
+    if (!predOpponents3rd["1L"]) predOpponents3rd["1L"] = "3º Grupo E/H/I/J/K";
+    if (!predOpponents3rd["1D"]) predOpponents3rd["1D"] = "3º Grupo B/E/F/I/J";
+    if (!predOpponents3rd["1G"]) predOpponents3rd["1G"] = "3º Grupo A/E/H/I/J";
+    if (!predOpponents3rd["1B"]) predOpponents3rd["1B"] = "3º Grupo E/F/G/I/J";
+    if (!predOpponents3rd["1K"]) predOpponents3rd["1K"] = "3º Grupo D/E/I/J/L";
+
+    // Dieciseisavos (Match 73 to 88)
+    predictedResolved[73] = { home: predGroup2nd["A"] || "2º Grupo A", away: predGroup2nd["B"] || "2º Grupo B" };
+    predictedResolved[74] = { home: predGroup1st["E"] || "1º Grupo E", away: predOpponents3rd["1E"] };
+    predictedResolved[75] = { home: predGroup1st["F"] || "1º Grupo F", away: predGroup2nd["C"] || "2º Grupo C" };
+    predictedResolved[76] = { home: predGroup1st["C"] || "1º Grupo C", away: predGroup2nd["F"] || "2º Grupo F" };
+    predictedResolved[77] = { home: predGroup1st["I"] || "1º Grupo I", away: predOpponents3rd["1I"] };
+    predictedResolved[78] = { home: predGroup2nd["E"] || "2º Grupo E", away: predGroup2nd["I"] || "2º Grupo I" };
+    predictedResolved[79] = { home: predGroup1st["A"] || "1º Grupo A", away: predOpponents3rd["1A"] };
+    predictedResolved[80] = { home: predGroup1st["L"] || "1º Grupo L", away: predOpponents3rd["1L"] };
+    predictedResolved[81] = { home: predGroup1st["D"] || "1º Grupo D", away: predOpponents3rd["1D"] };
+    predictedResolved[82] = { home: predGroup1st["G"] || "1º Grupo G", away: predOpponents3rd["1G"] };
+    predictedResolved[83] = { home: predGroup2nd["K"] || "2º Grupo K", away: predGroup2nd["L"] || "2º Grupo L" };
+    predictedResolved[84] = { home: predGroup1st["H"] || "1º Grupo H", away: predGroup2nd["J"] || "2º Grupo J" };
+    predictedResolved[85] = { home: predGroup1st["B"] || "1º Grupo B", away: predOpponents3rd["1B"] };
+    predictedResolved[86] = { home: predGroup1st["J"] || "1º Grupo J", away: predGroup2nd["H"] || "2º Grupo H" };
+    predictedResolved[87] = { home: predGroup1st["K"] || "1º Grupo K", away: predOpponents3rd["1K"] };
+    predictedResolved[88] = { home: predGroup2nd["D"] || "2º Grupo D", away: predGroup2nd["G"] || "2º Grupo G" };
+
+    // Octavos (Match 89 to 96)
+    predictedResolved[89] = { home: getPredictedWinner(74), away: getPredictedWinner(77) };
+    predictedResolved[90] = { home: getPredictedWinner(73), away: getPredictedWinner(75) };
+    predictedResolved[91] = { home: getPredictedWinner(76), away: getPredictedWinner(78) };
+    predictedResolved[92] = { home: getPredictedWinner(79), away: getPredictedWinner(80) };
+    predictedResolved[93] = { home: getPredictedWinner(83), away: getPredictedWinner(84) };
+    predictedResolved[94] = { home: getPredictedWinner(81), away: getPredictedWinner(82) };
+    predictedResolved[95] = { home: getPredictedWinner(86), away: getPredictedWinner(88) };
+    predictedResolved[96] = { home: getPredictedWinner(85), away: getPredictedWinner(87) };
+
+    // Cuartos (Match 97 to 100)
+    predictedResolved[97] = { home: getPredictedWinner(89), away: getPredictedWinner(90) };
+    predictedResolved[98] = { home: getPredictedWinner(93), away: getPredictedWinner(94) };
+    predictedResolved[99] = { home: getPredictedWinner(91), away: getPredictedWinner(92) };
+    predictedResolved[100] = { home: getPredictedWinner(95), away: getPredictedWinner(96) };
+
+    // Semifinales (Match 101 to 102)
+    predictedResolved[101] = { home: getPredictedWinner(97), away: getPredictedWinner(98) };
+    predictedResolved[102] = { home: getPredictedWinner(99), away: getPredictedWinner(100) };
+
+    // Puesto 3 & Final (Match 103 & 104)
+    predictedResolved[103] = { home: getPredictedLoser(101), away: getPredictedLoser(102) };
+    predictedResolved[104] = { home: getPredictedWinner(101), away: getPredictedWinner(102) };
+
+    return { 
+      standings: sortedStandings, 
+      resolvedBracket: resolved, 
+      predictedStandings: sortedPredictedStandings, 
+      predictedResolvedBracket: predictedResolved 
+    };
   }, [matches, predictions, editingScores, editingPenaltyWinners, viewingUser, viewedUserPredictions]);
 
   // Group Matches by Group name (A-L) for group stage
@@ -865,13 +1113,14 @@ function App() {
     const isStarted = matchDateObj <= new Date();
     const hasFinished = m.status === "FT";
 
-    const homeResolved = resolvedBracket[m.id]?.home || m.home_team;
-    const awayResolved = resolvedBracket[m.id]?.away || m.away_team;
+    const isFT = m.status === "FT";
+    const homeResolved = isFT ? (resolvedBracket[m.id]?.home || m.home_team) : (predictedResolvedBracket[m.id]?.home || m.home_team);
+    const awayResolved = isFT ? (resolvedBracket[m.id]?.away || m.away_team) : (predictedResolvedBracket[m.id]?.away || m.away_team);
 
     const homeFlag = getFlagEmoji(homeResolved);
     const awayFlag = getFlagEmoji(awayResolved);
 
-    const isPlaceholder = isTeamPlaceholder(homeResolved) || isTeamPlaceholder(awayResolved);
+    const isPlaceholder = isFT && (isTeamPlaceholder(homeResolved) || isTeamPlaceholder(awayResolved));
     
     const homeScoreInt = draft.home !== "" ? parseInt(draft.home, 10) : null;
     const awayScoreInt = draft.away !== "" ? parseInt(draft.away, 10) : null;
@@ -899,6 +1148,81 @@ function App() {
       }));
     };
 
+    const getRoundForMatch = (matchId: number): string | null => {
+      if (matchId >= 73 && matchId <= 88) return "r32";
+      if (matchId >= 89 && matchId <= 96) return "r16";
+      if (matchId >= 97 && matchId <= 100) return "qf";
+      if (matchId >= 101 && matchId <= 102) return "sf";
+      if (matchId === 103) return "third";
+      if (matchId === 104) return "final";
+      return null;
+    };
+
+    const getRoundLabel = (matchId: number): string => {
+      const round = getRoundForMatch(matchId);
+      if (round === "r32") return "Dieciseisavos (1/16)";
+      if (round === "r16") return "Octavos (1/8)";
+      if (round === "qf") return "Cuartos (1/4)";
+      if (round === "sf") return "Semifinales";
+      if (round === "third") return "3er Puesto";
+      if (round === "final") return "la Final";
+      return "Eliminatorias";
+    };
+
+    const activePredictions = viewingUser ? viewedUserPredictions : predictions;
+
+    let matchingPredId = null;
+    let isCoincident = false;
+    let isSemiCoincident = false;
+
+    if (m.id >= 73 && !isPlaceholder && m.status === "FT") {
+      const realSet = new Set([homeResolved, awayResolved]);
+
+      // Scan all predicted resolved matches to find matches with the same teams
+      const candidates = [];
+      for (let mPredId = 73; mPredId <= 104; mPredId++) {
+        const predHome = predictedResolvedBracket[mPredId]?.home;
+        const predAway = predictedResolvedBracket[mPredId]?.away;
+        if (predHome && predAway && !isTeamPlaceholder(predHome) && !isTeamPlaceholder(predAway)) {
+          if (realSet.has(predHome) && realSet.has(predAway)) {
+            candidates.push(mPredId);
+          }
+        }
+      }
+
+      if (candidates.length > 0) {
+        const roundReal = getRoundForMatch(m.id);
+        const sameRoundCandidates = candidates.filter(c => getRoundForMatch(c) === roundReal);
+
+        if (sameRoundCandidates.length > 0) {
+          if (sameRoundCandidates.includes(m.id)) {
+            matchingPredId = m.id; // Normal match
+          } else {
+            matchingPredId = sameRoundCandidates[0];
+            isCoincident = true;
+          }
+        } else {
+          matchingPredId = candidates[0];
+          isSemiCoincident = true;
+        }
+      }
+    }
+
+    let borderStyle = {};
+    if (isCoincident) {
+      borderStyle = {
+        borderColor: "rgba(16, 185, 129, 0.5)",
+        boxShadow: "0 0 12px rgba(16, 185, 129, 0.1)",
+        background: "linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(15, 23, 42, 0.75) 100%)",
+      };
+    } else if (isSemiCoincident) {
+      borderStyle = {
+        borderColor: "rgba(245, 158, 11, 0.5)",
+        boxShadow: "0 0 12px rgba(245, 158, 11, 0.1)",
+        background: "linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(15, 23, 42, 0.75) 100%)",
+      };
+    }
+
     return (
       <div 
         key={m.id} 
@@ -907,6 +1231,7 @@ function App() {
           opacity: isPlaceholder ? 0.65 : 1,
           background: isPlaceholder ? "rgba(15, 23, 42, 0.3)" : "rgba(15, 23, 42, 0.65)",
           borderColor: isPlaceholder ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.08)",
+          ...borderStyle,
         }}
       >
         <div className="bracket-match-header">
@@ -972,9 +1297,67 @@ function App() {
           </div>
         </div>
 
+        {/* Prediction compare info */}
+        {m.stage !== "group" && (
+          <div className="bracket-match-prediction-info" style={{ marginTop: "0.5rem", fontSize: "0.75rem", opacity: 0.8, borderTop: "1px dashed rgba(255,255,255,0.1)", paddingTop: "0.5rem" }}>
+            {isCoincident && matchingPredId !== null && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+                <span style={{ color: "#10b981", fontWeight: "bold" }}>✨ PARTIDO COINCIDENTE (100% pts)</span>
+                {(() => {
+                  const matchingPred = activePredictions[matchingPredId];
+                  if (matchingPred) {
+                    const predHome = predictedResolvedBracket[matchingPredId]?.home;
+                    const predAway = predictedResolvedBracket[matchingPredId]?.away;
+                    return (
+                      <span style={{ opacity: 0.7 }}>
+                        Predicho en #{matchingPredId}: {getFlagEmoji(predHome)} {predHome} {matchingPred.home_score} - {matchingPred.away_score} {predAway} {getFlagEmoji(predAway)}
+                      </span>
+                    );
+                  }
+                  return <span style={{ opacity: 0.5 }}>Coincidencia sin pronóstico guardado</span>;
+                })()}
+              </div>
+            )}
+            {isSemiCoincident && matchingPredId !== null && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+                <span style={{ color: "#f59e0b", fontWeight: "bold" }}>⚠️ PARTIDO SEMICOINCIDENTE (50% pts)</span>
+                {(() => {
+                  const matchingPred = activePredictions[matchingPredId];
+                  if (matchingPred) {
+                    const predHome = predictedResolvedBracket[matchingPredId]?.home;
+                    const predAway = predictedResolvedBracket[matchingPredId]?.away;
+                    const roundLabel = getRoundLabel(matchingPredId);
+                    return (
+                      <span style={{ opacity: 0.7 }}>
+                        Predicho en {roundLabel}: {getFlagEmoji(predHome)} {predHome} {matchingPred.home_score} - {matchingPred.away_score} {predAway} {getFlagEmoji(predAway)}
+                      </span>
+                    );
+                  }
+                  return <span style={{ opacity: 0.5 }}>Coincidencia sin pronóstico guardado</span>;
+                })()}
+              </div>
+            )}
+            {!isCoincident && !isSemiCoincident && (() => {
+              const predHome = predictedResolvedBracket[m.id]?.home;
+              const predAway = predictedResolvedBracket[m.id]?.away;
+              const hasPredTeams = predHome && predAway && !isTeamPlaceholder(predHome) && !isTeamPlaceholder(predAway);
+              if (hasPredTeams) {
+                const predHomeScore = pred ? pred.home_score : "?";
+                const predAwayScore = pred ? pred.away_score : "?";
+                return (
+                  <div style={{ fontStyle: "italic", opacity: 0.6 }}>
+                    Predicción original: {getFlagEmoji(predHome)} {predHome} {predHomeScore} - {predAwayScore} {predAway} {getFlagEmoji(predAway)}
+                  </div>
+                );
+              }
+              return null;
+            })()}
+          </div>
+        )}
+
         {/* Footer with save button */}
         {!isStarted && !hasFinished && !isPlaceholder && (
-          <div className="bracket-match-footer">
+          <div className="bracket-match-footer" style={{ marginTop: "0.5rem" }}>
             {isModified ? (
               <button 
                 onClick={() => handleSavePrediction(m.id)} 
@@ -1507,21 +1890,41 @@ function App() {
                       <th style={{ textAlign: "left", paddingBottom: "0.5rem" }}>Equipo</th>
                       <th style={{ textAlign: "center", paddingBottom: "0.5rem" }}>PJ</th>
                       <th style={{ textAlign: "center", paddingBottom: "0.5rem" }}>DG</th>
+                      <th style={{ textAlign: "center", paddingBottom: "0.5rem" }}>Pred.</th>
                       <th style={{ textAlign: "right", paddingBottom: "0.5rem" }}>Pts</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {list.map((t, idx) => (
-                      <tr key={t.team} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)", fontWeight: idx < 2 ? 600 : 400 }}>
-                        <td style={{ padding: "0.5rem 0", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                          <span style={{ fontSize: "0.75rem", opacity: 0.5 }}>#{idx+1}</span>
-                          <span>{getFlagEmoji(t.team)} {t.team}</span>
-                        </td>
-                        <td style={{ textAlign: "center", padding: "0.5rem 0" }}>{t.played}</td>
-                        <td style={{ textAlign: "center", padding: "0.5rem 0", color: t.goalDiff > 0 ? "#10b981" : (t.goalDiff < 0 ? "#ef4444" : "inherit") }}>{t.goalDiff > 0 ? `+${t.goalDiff}` : t.goalDiff}</td>
-                        <td style={{ textAlign: "right", padding: "0.5rem 0", color: idx < 2 ? "var(--accent)" : "inherit" }}>{t.points}</td>
-                      </tr>
-                    ))}
+                    {list.map((t, idx) => {
+                      const predRank = (predictedStandings[g]?.findIndex((x) => x.team === t.team) ?? 0) + 1;
+                      const isCorrect = predRank === idx + 1;
+                      return (
+                        <tr key={t.team} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)", fontWeight: idx < 2 ? 600 : 400 }}>
+                          <td style={{ padding: "0.5rem 0", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                            <span style={{ fontSize: "0.75rem", opacity: 0.5 }}>#{idx+1}</span>
+                            <span>{getFlagEmoji(t.team)} {t.team}</span>
+                          </td>
+                          <td style={{ textAlign: "center", padding: "0.5rem 0" }}>{t.played}</td>
+                          <td style={{ textAlign: "center", padding: "0.5rem 0", color: t.goalDiff > 0 ? "#10b981" : (t.goalDiff < 0 ? "#ef4444" : "inherit") }}>{t.goalDiff > 0 ? `+${t.goalDiff}` : t.goalDiff}</td>
+                          <td style={{ textAlign: "center", padding: "0.5rem 0" }}>
+                            <span 
+                              style={{ 
+                                background: isCorrect ? "rgba(16, 185, 129, 0.15)" : "rgba(255,255,255,0.06)", 
+                                color: isCorrect ? "#10b981" : "rgba(255,255,255,0.6)",
+                                padding: "2px 6px", 
+                                borderRadius: "4px", 
+                                fontSize: "0.75rem",
+                                fontWeight: "bold",
+                                border: isCorrect ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid transparent"
+                              }}
+                            >
+                              #{predRank}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: "right", padding: "0.5rem 0", color: idx < 2 ? "var(--accent)" : "inherit" }}>{t.points}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1859,6 +2262,26 @@ function App() {
                     Si no aciertas ni el ganador ni el empate (ejemplo: pronosticas 1-0 y termina 1-2).
                   </p>
                 </div>
+              </div>
+
+              <div style={{ marginTop: "2.5rem", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "1.5rem" }}>
+                <h3 style={{ color: "var(--accent)", marginBottom: "1rem" }}>🔄 Reglas de Emparejamiento en Fases Eliminatorias</h3>
+                <p style={{ opacity: 0.8, fontSize: "0.9rem", lineHeight: "1.6", margin: "0 0 1rem 0" }}>
+                  En las eliminatorias, tus pronósticos se evalúan comparándolos con los partidos que realmente acaben ocurriendo en el Mundial real:
+                </p>
+                <ul style={{ paddingLeft: "1.25rem", margin: "0 0 1.5rem 0", fontSize: "0.9rem", opacity: 0.8, lineHeight: "1.8", listStyleType: "disc" }}>
+                  <li>
+                    <strong style={{ color: "#10b981" }}>✨ Partido Coincidente (100% de puntos):</strong> Ocurre si aciertas los dos equipos que juegan un partido en la <strong>misma ronda</strong>. 
+                    Si los equipos están invertidos (ej. pronosticaste A-B y juegan B-A), los goles de tu pronóstico se invierten automáticamente para evaluarte.
+                  </li>
+                  <li>
+                    <strong style={{ color: "#f59e0b" }}>⚠️ Partido Semicoincidente (50% de puntos):</strong> Ocurre si acertaste los dos equipos de un enfrentamiento real, pero en tu pronóstico dijiste que se enfrentarían en una <strong>ronda diferente</strong>. 
+                    Se calcula tu acierto con inversión automática de marcador si aplica, y los puntos obtenidos (sea por resultado o marcador exacto) se multiplican por 0.5 (generando decimales).
+                  </li>
+                  <li>
+                    <strong>❌ Desajuste de Equipos (0 puntos):</strong> Si en un partido real de fase final juegas con equipos distintos a los que pronosticaste (sea en ese partido o vía las reglas anteriores), no recibirás puntos por predecir el marcador de ese partido real.
+                  </li>
+                </ul>
               </div>
 
               <div style={{ marginTop: "2.5rem", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "1.5rem" }}>

@@ -8,7 +8,7 @@ class User(SQLModel, table=True):
     telegram_id: str = Field(unique=True, index=True)
     username: str | None = Field(default=None)
     full_name: str
-    points: int = Field(default=0)
+    points: float = Field(default=0.0)
 
     # Relationships
     predictions: list["Prediction"] = Relationship(back_populates="user")
@@ -41,7 +41,7 @@ class Prediction(SQLModel, table=True):
     home_score: int
     away_score: int
     penalty_winner_home: bool | None = Field(default=None, nullable=True)
-    points_earned: int = Field(default=0)
+    points_earned: float = Field(default=0.0)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     # Relationships
