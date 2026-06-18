@@ -1113,13 +1113,14 @@ function App() {
     const isStarted = matchDateObj <= new Date();
     const hasFinished = m.status === "FT";
 
-    const homeResolved = resolvedBracket[m.id]?.home || m.home_team;
-    const awayResolved = resolvedBracket[m.id]?.away || m.away_team;
+    const isFT = m.status === "FT";
+    const homeResolved = isFT ? (resolvedBracket[m.id]?.home || m.home_team) : (predictedResolvedBracket[m.id]?.home || m.home_team);
+    const awayResolved = isFT ? (resolvedBracket[m.id]?.away || m.away_team) : (predictedResolvedBracket[m.id]?.away || m.away_team);
 
     const homeFlag = getFlagEmoji(homeResolved);
     const awayFlag = getFlagEmoji(awayResolved);
 
-    const isPlaceholder = isTeamPlaceholder(homeResolved) || isTeamPlaceholder(awayResolved);
+    const isPlaceholder = isFT && (isTeamPlaceholder(homeResolved) || isTeamPlaceholder(awayResolved));
     
     const homeScoreInt = draft.home !== "" ? parseInt(draft.home, 10) : null;
     const awayScoreInt = draft.away !== "" ? parseInt(draft.away, 10) : null;
@@ -1174,7 +1175,7 @@ function App() {
     let isCoincident = false;
     let isSemiCoincident = false;
 
-    if (m.id >= 73 && !isPlaceholder) {
+    if (m.id >= 73 && !isPlaceholder && m.status === "FT") {
       const realSet = new Set([homeResolved, awayResolved]);
 
       // Scan all predicted resolved matches to find matches with the same teams
@@ -2261,6 +2262,26 @@ function App() {
                     Si no aciertas ni el ganador ni el empate (ejemplo: pronosticas 1-0 y termina 1-2).
                   </p>
                 </div>
+              </div>
+
+              <div style={{ marginTop: "2.5rem", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "1.5rem" }}>
+                <h3 style={{ color: "var(--accent)", marginBottom: "1rem" }}>🔄 Reglas de Emparejamiento en Fases Eliminatorias</h3>
+                <p style={{ opacity: 0.8, fontSize: "0.9rem", lineHeight: "1.6", margin: "0 0 1rem 0" }}>
+                  En las eliminatorias, tus pronósticos se evalúan comparándolos con los partidos que realmente acaben ocurriendo en el Mundial real:
+                </p>
+                <ul style={{ paddingLeft: "1.25rem", margin: "0 0 1.5rem 0", fontSize: "0.9rem", opacity: 0.8, lineHeight: "1.8", listStyleType: "disc" }}>
+                  <li>
+                    <strong style={{ color: "#10b981" }}>✨ Partido Coincidente (100% de puntos):</strong> Ocurre si aciertas los dos equipos que juegan un partido en la <strong>misma ronda</strong>. 
+                    Si los equipos están invertidos (ej. pronosticaste A-B y juegan B-A), los goles de tu pronóstico se invierten automáticamente para evaluarte.
+                  </li>
+                  <li>
+                    <strong style={{ color: "#f59e0b" }}>⚠️ Partido Semicoincidente (50% de puntos):</strong> Ocurre si acertaste los dos equipos de un enfrentamiento real, pero en tu pronóstico dijiste que se enfrentarían en una <strong>ronda diferente</strong>. 
+                    Se calcula tu acierto con inversión automática de marcador si aplica, y los puntos obtenidos (sea por resultado o marcador exacto) se multiplican por 0.5 (generando decimales).
+                  </li>
+                  <li>
+                    <strong>❌ Desajuste de Equipos (0 puntos):</strong> Si en un partido real de fase final juegas con equipos distintos a los que pronosticaste (sea en ese partido o vía las reglas anteriores), no recibirás puntos por predecir el marcador de ese partido real.
+                  </li>
+                </ul>
               </div>
 
               <div style={{ marginTop: "2.5rem", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "1.5rem" }}>
