@@ -829,6 +829,29 @@ function App() {
     })).sort((a, b) => a.groupName.localeCompare(b.groupName));
   }, [matches]);
 
+  const hasUnsavedDrafts = useMemo(() => {
+    return matches.some((m) => {
+      const matchDateObj = new Date(m.date);
+      const isStarted = matchDateObj <= new Date();
+      const hasFinished = m.status === "FT";
+      if (isStarted || hasFinished) return false;
+
+      const draft = editingScores[m.id];
+      const pred = predictions[m.id];
+      if (!draft || draft.home === "" || draft.away === "") return false;
+
+      const scoreChanged =
+        draft.home !== (pred ? String(pred.home_score) : "") ||
+        draft.away !== (pred ? String(pred.away_score) : "");
+
+      const penaltyWinnerChanged =
+        (editingPenaltyWinners[m.id] !== undefined ? editingPenaltyWinners[m.id] : null) !==
+        (pred && pred.penalty_winner_home !== undefined ? pred.penalty_winner_home : null);
+
+      return scoreChanged || penaltyWinnerChanged;
+    });
+  }, [matches, editingScores, predictions, editingPenaltyWinners]);
+
 
   // Render bracket match card helper
   const renderBracketMatchCard = (m: Match) => {
@@ -1023,7 +1046,8 @@ function App() {
           </span>
         </div>
 
-        <div className="match-card-body">
+        {/* Layout de Escritorio (Horizontal) */}
+        <div className="match-card-body-desktop">
           <div className="team">
             <span className="team-flag">{homeFlag}</span>
             <span className="team-name">{homeResolved}</span>
@@ -1062,6 +1086,47 @@ function App() {
           <div className="team">
             <span className="team-flag">{awayFlag}</span>
             <span className="team-name">{awayResolved}</span>
+          </div>
+        </div>
+
+        {/* Layout Móvil (Apilado por filas de equipo) */}
+        <div className="match-card-body-mobile">
+          <div className="mobile-team-row">
+            <div className="mobile-team-info">
+              <span className="team-flag">{homeFlag}</span>
+              <span className="team-name">{homeResolved}</span>
+            </div>
+            {m.home_score !== null && m.away_score !== null ? (
+              <span className="mobile-real-score">{m.home_score}</span>
+            ) : (
+              <input
+                type="text"
+                className="pred-input"
+                placeholder="-"
+                value={draft.home}
+                onChange={(e) => handleScoreChange(m.id, "home", e.target.value)}
+                disabled={isStarted || hasFinished || !!viewingUser}
+              />
+            )}
+          </div>
+
+          <div className="mobile-team-row">
+            <div className="mobile-team-info">
+              <span className="team-flag">{awayFlag}</span>
+              <span className="team-name">{awayResolved}</span>
+            </div>
+            {m.home_score !== null && m.away_score !== null ? (
+              <span className="mobile-real-score">{m.away_score}</span>
+            ) : (
+              <input
+                type="text"
+                className="pred-input"
+                placeholder="-"
+                value={draft.away}
+                onChange={(e) => handleScoreChange(m.id, "away", e.target.value)}
+                disabled={isStarted || hasFinished || !!viewingUser}
+              />
+            )}
           </div>
         </div>
 
@@ -1275,21 +1340,26 @@ function App() {
 
       {/* Control Panel Toolbar */}
       {!viewingUser && (
-        <div className="glass-panel control-toolbar" style={{ margin: "1rem 2rem", padding: "0.75rem 1.5rem", borderRadius: "12px", display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center" }}>
-          <span style={{ fontWeight: 600, color: "var(--accent)" }}>🛠️ Herramientas de Prueba:</span>
-          <button onClick={handleSimulateMyPredictions} className="btn-save-pred" style={{ background: "rgba(139, 92, 246, 0.2)", color: "#c084fc", border: "1px solid rgba(139, 92, 246, 0.4)" }}>
-            🎲 Simular mis Pronósticos
-          </button>
-          <button onClick={handleResetMyPredictions} className="btn-save-pred" style={{ background: "rgba(139, 92, 246, 0.1)", color: "#e9d5ff", border: "1px solid rgba(139, 92, 246, 0.2)" }} disabled={isSimulatingAll}>
-            🧹 Resetear mis Pronósticos
-          </button>
-          <button onClick={handleSimulateRealScores} className="btn-save-pred" style={{ background: "rgba(239, 68, 68, 0.2)", color: "#f87171", border: "1px solid rgba(239, 68, 68, 0.4)" }} disabled={isSimulatingAll}>
-            {isSimulatingAll ? "Simulando..." : "🎲 Simular Resultados Reales (Admin)"}
-          </button>
-          <button onClick={handleResetRealScores} className="btn-save-pred" style={{ background: "rgba(239, 68, 68, 0.1)", color: "#fecaca", border: "1px solid rgba(239, 68, 68, 0.2)" }} disabled={isSimulatingAll}>
-            🧹 Resetear Resultados Reales (Admin)
-          </button>
-        </div>
+        <details className="admin-tools-accordion glass-panel">
+          <summary className="admin-tools-summary">
+            <span>🛠️ Herramientas de Desarrollo y Prueba</span>
+            <span className="summary-chevron">▼</span>
+          </summary>
+          <div className="control-toolbar">
+            <button onClick={handleSimulateMyPredictions} className="btn-save-pred" style={{ background: "rgba(139, 92, 246, 0.2)", color: "#c084fc", border: "1px solid rgba(139, 92, 246, 0.4)" }}>
+              🎲 Simular mis Pronósticos
+            </button>
+            <button onClick={handleResetMyPredictions} className="btn-save-pred" style={{ background: "rgba(139, 92, 246, 0.1)", color: "#e9d5ff", border: "1px solid rgba(139, 92, 246, 0.2)" }} disabled={isSimulatingAll}>
+              🧹 Resetear mis Pronósticos
+            </button>
+            <button onClick={handleSimulateRealScores} className="btn-save-pred" style={{ background: "rgba(239, 68, 68, 0.2)", color: "#f87171", border: "1px solid rgba(239, 68, 68, 0.4)" }} disabled={isSimulatingAll}>
+              {isSimulatingAll ? "Simulando..." : "🎲 Simular Resultados Reales (Admin)"}
+            </button>
+            <button onClick={handleResetRealScores} className="btn-save-pred" style={{ background: "rgba(239, 68, 68, 0.1)", color: "#fecaca", border: "1px solid rgba(239, 68, 68, 0.2)" }} disabled={isSimulatingAll}>
+              🧹 Resetear Resultados Reales (Admin)
+            </button>
+          </div>
+        </details>
       )}
 
       {/* Tabs Navigation */}
@@ -1298,44 +1368,43 @@ function App() {
           onClick={() => setActiveTab("matches")}
           className={`tab-btn ${activeTab === "matches" ? "active" : ""}`}
         >
-          Partidos Fase de Grupos
+          ⚽ Grupos
         </button>
         <button
           onClick={() => setActiveTab("bracket")}
           className={`tab-btn ${activeTab === "bracket" ? "active" : ""}`}
         >
-          Partidos Fase Final
+          🏆 Fase Final
         </button>
         <button
           onClick={() => setActiveTab("standings")}
           className={`tab-btn ${activeTab === "standings" ? "active" : ""}`}
         >
-          Posiciones de Grupos
+          📋 Posiciones
         </button>
         <button
           onClick={() => setActiveTab("sidebets")}
           className={`tab-btn ${activeTab === "sidebets" ? "active" : ""}`}
         >
-          Apuestas Especiales
+          🎯 Especiales
         </button>
         <button
           onClick={() => setActiveTab("leaderboard")}
           className={`tab-btn ${activeTab === "leaderboard" ? "active" : ""}`}
         >
-          Clasificación General
+          🏅 Clasificación
         </button>
         <button
           onClick={() => setActiveTab("rules")}
           className={`tab-btn ${activeTab === "rules" ? "active" : ""}`}
         >
-          Reglas y Puntuación
+          📜 Reglas
         </button>
       </nav>
 
       {/* Main Tab Content */}
       <main 
-        className={viewingUser ? "viewing-mode-gray" : ""}
-        style={{ flex: 1, padding: "0 2rem 2rem 2rem" }}
+        className={`main-content ${viewingUser ? "viewing-mode-gray" : ""}`}
       >
         {viewedUserLoading ? (
           <div style={{ textAlign: "center", padding: "3rem" }}>
@@ -1428,7 +1497,7 @@ function App() {
           </div>
         ) : activeTab === "standings" ? (
           // --- TAB 3: STANDINGS ---
-          <div className="standings-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "2rem" }}>
+          <div className="standings-grid">
             {Object.entries(standings).sort((a, b) => a[0].localeCompare(b[0])).map(([g, list]) => (
               <div key={g} className="glass-panel" style={{ padding: "1.25rem", borderRadius: "12px" }}>
                 <h3 style={{ color: "var(--accent)", marginBottom: "1rem", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "0.5rem" }}>Grupo {g}</h3>
@@ -1460,8 +1529,8 @@ function App() {
           </div>
         ) : activeTab === "sidebets" ? (
           // --- TAB 4: SIDEBETS ---
-          <div style={{ maxWidth: "600px", margin: "0 auto" }}>
-            <div className="glass-panel" style={{ padding: "2rem", borderRadius: "16px" }}>
+          <div className="sidebets-container">
+            <div className="glass-panel sidebets-panel">
               <h2 style={{ color: "var(--accent)", marginBottom: "1.5rem", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "0.75rem" }}>🎯 Apuestas Especiales del Torneo</h2>
               <p style={{ fontSize: "0.9rem", opacity: 0.8, marginBottom: "2rem" }}>Elige tus favoritos para los premios especiales de la porra. ¡Rellena tus candidatos en cada desplegable y guarda los cambios!</p>
 
@@ -1703,7 +1772,7 @@ function App() {
             </div>
 
             {/* AI Daily Summaries Section */}
-            <div className="glass-panel ai-summaries-section" style={{ marginTop: "2rem", padding: "2rem", borderRadius: "16px" }}>
+            <div className="glass-panel ai-summaries-panel ai-summaries-section">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "1rem", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
                 <h2 style={{ color: "var(--accent)", margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
                   📰 Crónicas Diarias de la IA
@@ -1761,7 +1830,7 @@ function App() {
         ) : (
           // --- TAB 6: RULES ---
           <div style={{ maxWidth: "800px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "2rem" }}>
-            <div className="glass-panel" style={{ padding: "2.5rem", borderRadius: "16px" }}>
+            <div className="glass-panel rules-panel">
               <h2 style={{ color: "var(--accent)", marginBottom: "1.5rem", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 📜 Reglas de Puntuación
               </h2>
@@ -1825,6 +1894,11 @@ function App() {
       </main>
 
       {/* Modal Overlay for viewing other users' predictions */}
+      {hasUnsavedDrafts && (
+        <button onClick={handleSaveAllDrafts} className="floating-save-btn">
+          💾 Guardar Cambios
+        </button>
+      )}
     </>
   );
 }

@@ -910,9 +910,7 @@ async def test_daily_summaries_prompt_content() -> None:
         captured_prompt = prompt
         return "mocked response"
 
-    with patch("app.services.ai_summary_service.AISummaryService._call_gemini_api", side_effect=mock_call_gemini_api), \
-         patch("app.services.match_service.MatchService.update_matches_if_needed", return_value=False), \
-         patch("app.services.match_service.MatchService.recalculate_all_users_points", return_value=None):
+    with patch("app.services.ai_summary_service.AISummaryService._call_gemini_api", side_effect=mock_call_gemini_api):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             res_gen = await ac.post("/api/daily-summaries/generate", json={"date": date_str})
             assert res_gen.status_code == 200

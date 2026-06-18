@@ -2,6 +2,7 @@ import logging
 from collections.abc import Sequence
 from datetime import datetime, time, timedelta
 from typing import cast
+from zoneinfo import ZoneInfo
 
 import httpx
 from sqlalchemy import desc, select
@@ -30,8 +31,11 @@ class AISummaryService:
         except ValueError as e:
             raise ValueError("El formato de fecha debe ser YYYY-MM-DD") from e
 
-        start_dt = datetime.combine(target_date, time.min)
-        end_dt = datetime.combine(target_date, time.max)
+        madrid_tz = ZoneInfo("Europe/Madrid")
+        local_start = datetime.combine(target_date, time.min).replace(tzinfo=madrid_tz)
+        local_end = datetime.combine(target_date, time.max).replace(tzinfo=madrid_tz)
+        start_dt = local_start.astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
+        end_dt = local_end.astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
 
         # Get matches
         match_query = select(Match).where(Match.date >= start_dt, Match.date <= end_dt)  # type: ignore[arg-type]
@@ -40,8 +44,10 @@ class AISummaryService:
 
         # Query yesterday's summary and yesterday's matches/predictions for AI context (memory)
         yesterday_date = target_date - timedelta(days=1)
-        start_yesterday = datetime.combine(yesterday_date, time.min)
-        end_yesterday = datetime.combine(yesterday_date, time.max)
+        local_start_yesterday = datetime.combine(yesterday_date, time.min).replace(tzinfo=madrid_tz)
+        local_end_yesterday = datetime.combine(yesterday_date, time.max).replace(tzinfo=madrid_tz)
+        start_yesterday = local_start_yesterday.astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
+        end_yesterday = local_end_yesterday.astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
 
         # 1. Get yesterday's written summary text
         yesterday_summary_text = "No hay crónica registrada para el día anterior."
@@ -174,6 +180,7 @@ Instrucciones:
 1. EXTENSIÓN CORTA: Sé breve, directo y al grano. La crónica debe ocupar: una o dos líneas de título, un párrafo por cada partido comentado de no más de 3 líneas, una o dos líneas de cierre.
 2. TÍTULO CON PUNTOS ACUMULADOS: El título en la primera línea de la crónica debe incluir obligatoriamente el resultado general de puntos acumulados entre todos los participantes. 
    - IMPORTANTE: Las puntuaciones de la sección 'CLASIFICACIÓN GENERAL ACUMULADA HASTA HOY' ya están completamente actualizadas y YA INCLUYEN los puntos ganados hoy. NO les sumes nada más, limítate a copiar esas puntuaciones exactas para el título sin realizar ninguna operación matemática (ej. si dice 'Edu (42 pts)', escribe exactamente 'Edu 42 pts' en el título, no sumes hoy a 42).
+2. TÍTULO CON PUNTOS ACUMULADOS: El título en la primera línea de la crónica debe incluir obligatoriamente el resultado general de puntos acumulados entre todos los participantes (la clasificación general actual). Sé creativo al redactarlo, pero asegúrate de que los nombres de los participantes y sus puntuaciones acumuladas de la porra se lean con total claridad en el título (ej. 'Crónica de la Porra - Edu 15 pts, Juan 10 pts, Pepe 8 pts').
 3. REGLA CRÍTICA DE ESTADOS: Distingue claramente entre partidos FINALIZADOS, EN JUEGO y NO EMPEZADOS.
    - Para partidos FINALIZADOS: Comenta el resultado definitivo de forma rápida y destaca aciertos de marcador exacto.
    - Para partidos EN JUEGO o NO EMPEZADOS: Habla de ellos en futuro o condicional (ej. 'Edu va ganando..., pero todo puede cambiar si Uganda gana a México...'). NUNCA los comentes como si ya hubieran terminado.
@@ -222,7 +229,7 @@ Instrucciones:
             logger.warning("GEMINI_API_KEY no está configurada. Usando fallback local humorístico.")
             return AISummaryService._generate_fallback_summary(matches, rankings_today)
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={api_key}"
         headers = {"Content-Type": "application/json"}
         payload = {
             "contents": [{
