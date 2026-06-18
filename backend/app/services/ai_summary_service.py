@@ -179,14 +179,12 @@ CLASIFICACIÓN GENERAL ACUMULADA HASTA HOY (PUNTOS TOTALES DE LA PORRA):
 {matches_section}
 
 PUNTUACIÓN TOTAL DEFINITIVA DEL DÍA (solo de partidos finalizados):
-{rankings_section}
-
 Instrucciones:
 1. EXTENSIÓN CORTA: Sé breve, directo y al grano. La crónica debe ocupar: un párrafo por cada partido comentado de no más de 3 líneas, y una o dos líneas de cierre. NO escribas ningún título ni cabecera al principio (por ejemplo, no pongas cosas como 'Crónica de hoy' ni la clasificación de participantes), empieza directamente con el primer párrafo del comentario, ya que el título con la clasificación real y sus puntos exactos se añadirá automáticamente de forma externa por el servidor.
 2. REGLA CRÍTICA DE ESTADOS: Distingue claramente entre partidos FINALIZADOS, EN JUEGO y NO EMPEZADOS.
    - Para partidos FINALIZADOS: Comenta el resultado definitivo de forma rápida y destaca aciertos de marcador exacto.
    - Para partidos EN JUEGO o NO EMPEZADOS: Habla de ellos en futuro o condicional (ej. 'Edu va ganando..., pero todo puede cambiar si Uganda gana a México...'). NUNCA los comentes como si ya hubieran terminado.
-3. GLOSARIO LOCAL (úsalos con moderación y gracia, sin abusar):
+3. GLOSARIO LOCAL (úsalos con moderación y gracia, sin abusar, intenta variar, no están escritos por orden de importancia así que da a todos la misma probabilidad de ser usados):
    - 'embudo': locura, excentricidad (ej. 'menudo embudo de pronóstico').
    - 'ponerse un embudo': volverse loco.
    - 'la glora': la selección española. (nunca la gloria ni nada similar, estrictamente La glora)
@@ -216,7 +214,8 @@ Instrucciones:
    - Si en la crónica del día anterior un partido ya aparecía descrito como finalizado/terminado de forma definitiva (comentando su marcador o resultado final), ¡NO vuelvas a hablar de él ni a mencionarlo hoy!
    - Solo debes repasar los partidos de ayer que en la crónica anterior aparecían como 'EN JUEGO', 'NO EMPEZADOS', con resultados provisionales, o que simplemente no aparecían en el texto.
    - Comenta brevemente y de forma SÚPER ESPECÍFICA el desenlace final y los puntos de esos partidos pendientes.
-   - EJEMPLO OBLIGATORIO: Si Edu acertó el Arabia Saudí vs Uruguay 1-1 y ganó 3 puntos, di explícitamente: "Ayer al final el Arabia-Uruguay acabó 1-1, por lo que Edu se llevó 3 puntazos al casillero...". Menciona nombres reales de los participantes y puntos ganados concretos."""
+   - De nuevo, recuerda que este repaso no debe alterar la clasificación general anunciada en el título.
+   - EJEMPLO OBLIGATORIO: Si Edu acertó el EQUPO A vs EQUIPO B 1-1 y ganó 3 puntos, di explícitamente: "Ayer al final el EQUIPO A - EQUIPO B acabó 1-1, por lo que Edu se llevó 3 puntazos al casillero...". Menciona nombres reales de los participantes y puntos ganados concretos."""
 
         content = await AISummaryService._call_gemini_api(prompt, matches, rankings_today)
         return await AISummaryService._save_summary(db, summary_date, content)
